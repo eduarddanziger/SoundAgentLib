@@ -61,7 +61,11 @@ bool HttpRequestProcessor::SendRequest(const RequestItem & requestItem, const st
 
         // Create HTTP client
         const auto url = utility::conversions::to_string_t(urlBase + requestItem.UrlSuffix);
-        web::http::client::http_client client(url);
+
+        web::http::client::http_client_config config;
+        config.set_timeout(std::chrono::seconds(10));
+
+        web::http::client::http_client client(url, config);
 
         // Create HTTP request
         web::http::http_request httpRequest(requestItem.PostOrPut ? web::http::methods::POST : web::http::methods::PUT);
@@ -144,24 +148,27 @@ void HttpRequestProcessor::ProcessingWorker()
             continue;
         }
 				
-		// Check if base url is on GitHub codespace. If not , we don't need to wake up
-        if (apiBaseUrlNoTrailingSlash_.find(".github.") == std::string::npos)
-        {// NOT a GitHub codespace, no wake up
+		// Check if base url is on GitHub codespace or on Azure. If not , we don't need to wake up
+        if (apiBaseUrlNoTrailingSlash_.find(".github.") == std::string::npos
+            && apiBaseUrlNoTrailingSlash_.find(".azurewebsites.") == std::string::npos)
+        {// NEITHER a GitHub codespace, nor Azure: no wake up
             spdlog::info(R"(Request sending to "{}" unsuccessful. Waking up makes no sense. Skipping request.)", apiBaseUrlNoTrailingSlash_);
             continue;
         }
 
 		if (++retryAwakingCount_ <= MAX_AWAKING_RETRIES)
 		{   // Wake-retrials are yet to be exhausted
+            if (apiBaseUrlNoTrailingSlash_.find(".github.") != std::string::npos)
+            {   // send Codespace-awaking request
+                const auto url = std::format("https://api.github.com/user/codespaces/{}/start", codeSpaceName_);
+                spdlog::info(R"(Send awaking request to GitHub Codespace"{}".)", url);
+                SendRequest(
+                    CreateAwakingRequest()
+                    , url);
 
-            // send awaking request
-            const auto url = std::format("https://api.github.com/user/codespaces/{}/start", codeSpaceName_);
-            SendRequest(
-                CreateAwakingRequest()
-                , url);
-
-			// push the prepared cloned request back to the queue
-		    std::unique_lock lock(mutex_);
+            }
+            // push the prepared cloned request back to the queue
+            std::unique_lock lock(mutex_);
             requestQueue_.push_front(itemCloned);
         }
 		else
