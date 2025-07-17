@@ -57,7 +57,7 @@ bool HttpRequestProcessor::SendRequest(const RequestItem & requestItem, const st
 
     try
     {
-        SPD_L->info("Processing request: {}", messageDeviceAppendix);
+        spdlog::info("Processing request: {}", messageDeviceAppendix);
 
         // Create HTTP client
         const auto url = utility::conversions::to_string_t(urlBase + requestItem.UrlSuffix);
