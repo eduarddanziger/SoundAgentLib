@@ -3,7 +3,8 @@
 #include "AudioDeviceApiClient.h"
 
 #include "public/SoundAgentInterface.h"
-#include "public/TimeUtil.h"
+
+#include "common/TimeUtil.h"
 
 #include <spdlog/spdlog.h>
 #include <string>
