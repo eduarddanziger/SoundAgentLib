@@ -139,15 +139,15 @@ void HttpRequestProcessor::ProcessingWorker()
 
         const auto itemCloned = item;
 
-		// If the sending was successful, set retries to 0 and remove the request from the queue
+        // If the sending was successful, set retries to 0 and remove the request from the queue
         if (SendRequest(item, apiBaseUrlNoTrailingSlash_))
-		{   // Request was successful
+        {   // Request was successful
             retryAwakingCount_ = 0;
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             continue;
         }
-				
-		// Check if base url is on GitHub codespace or on Azure. If not , we don't need to wake up
+                
+        // Check if base url is on GitHub codespace or on Azure. If not , we don't need to wake up
         if (apiBaseUrlNoTrailingSlash_.find(".github.") == std::string::npos
             && apiBaseUrlNoTrailingSlash_.find(".azurewebsites.") == std::string::npos)
         {// NEITHER a GitHub codespace, nor Azure: no wake up
@@ -155,8 +155,8 @@ void HttpRequestProcessor::ProcessingWorker()
             continue;
         }
 
-		if (++retryAwakingCount_ <= MAX_AWAKING_RETRIES)
-		{   // Wake-retrials are yet to be exhausted
+        if (++retryAwakingCount_ <= MAX_AWAKING_RETRIES)
+        {   // Wake-retrials are yet to be exhausted
             if (apiBaseUrlNoTrailingSlash_.find(".github.") != std::string::npos)
             {   // send Codespace-awaking request
                 const auto url = std::format("https://api.github.com/user/codespaces/{}/start", codeSpaceName_);
@@ -170,10 +170,10 @@ void HttpRequestProcessor::ProcessingWorker()
             std::unique_lock lock(mutex_);
             requestQueue_.push_front(itemCloned);
         }
-		else
-		{   // Retries exhausted
+        else
+        {   // Retries exhausted
             spdlog::info(R"(Request sending to "{}" unsuccessful. Retries exhausted. Skipping request's sending.)", apiBaseUrlNoTrailingSlash_);
-    		retryAwakingCount_ = 0;
+            retryAwakingCount_ = 0;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
@@ -189,12 +189,12 @@ HttpRequestProcessor::RequestItem HttpRequestProcessor::CreateAwakingRequest() c
     const std::string payloadString = payload.dump();
 
     const std::string authorizationValue = "Bearer " + universalToken_;
-	std::unordered_map<std::string, std::string> header{
-		{"Authorization", authorizationValue},
-		{"Accept", "application/vnd.github.v3+json"}
-	};
+    std::unordered_map<std::string, std::string> header{
+        {"Authorization", authorizationValue},
+        {"Accept", "application/vnd.github.v3+json"}
+    };
 
-	std::ostringstream oss; oss << " awaking a backend " << retryAwakingCount_ << " / " << MAX_AWAKING_RETRIES;
+    std::ostringstream oss; oss << " awaking a backend " << retryAwakingCount_ << " / " << MAX_AWAKING_RETRIES;
     return RequestItem{.PostOrPut = true, .Time = std::chrono::system_clock::now(), .UrlSuffix = "" , .Payload = payloadString, .Header = header, .Hint = oss.str() };
 }
 
