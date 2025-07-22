@@ -216,7 +216,7 @@ inline void ed::model::Logger::Reinit()
 
 	spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f %L [%t] %v");
 	spdlog::set_level(spdlog::level::debug);
-	spdlog::info("Application {}, version {}, logging [re-]initiated: {}", appName_, appVersion_, finalMessage);
+	spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
 }
 
 inline void ed::model::Logger::Free()
@@ -225,7 +225,7 @@ inline void ed::model::Logger::Free()
 	{
 		return;
 	}
-	spdlog::info("Log for {}, version {} is being freed.", RESOURCE_FILENAME_ATTRIBUTE, ASSEMBLY_VERSION_ATTRIBUTE);
+	spdlog::info("Log for {} (version {}) is being freed.", appName_, appVersion_);
 	spdlog::shutdown();
 	threadPoolSmartPtr_.reset(); // Explicitly reset the thread pool to free resources
 }
