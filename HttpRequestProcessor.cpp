@@ -1,11 +1,10 @@
 ﻿#include "os-dependencies.h"
 
-#include "SpdLogger.h"
-
 #include "HttpRequestProcessor.h"
 
+#include <spdlog/spdlog.h>
+#include <cpprest/http_client.h>
 #include <nlohmann/json.hpp>
-
 
 
 HttpRequestProcessor::HttpRequestProcessor(std::string apiBaseUrl,

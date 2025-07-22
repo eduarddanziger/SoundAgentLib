@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <cpprest/http_client.h>
 #include <deque>
 #include <mutex>
 #include <thread>

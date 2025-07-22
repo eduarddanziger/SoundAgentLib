@@ -5,8 +5,7 @@
 #include "public/SoundAgentInterface.h"
 #include "public/TimeUtil.h"
 
-#include "SpdLogger.h"
-
+#include <spdlog/spdlog.h>
 #include <string>
 #include <sstream>
 #include <nlohmann/json.hpp>
@@ -30,7 +29,7 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
 {
     if (!device)
     {
-        SPD_L->error("Cannot post device data: nullptr provided");
+        spdlog::error("Cannot post device data: nullptr provided");
         return;
     }
 
@@ -61,7 +60,7 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
     const std::string payloadString = payload.dump();
     const auto hint = hintPrefix + "Post a device." + device->GetPnpId();
 
-    SPD_L->info("Enqueueing: {}...", hint);
+    spdlog::info("Enqueueing: {}...", hint);
     requestProcessor_->EnqueueRequest(true, nowTime, "", payloadString, {}, hint);
 }
 
@@ -82,7 +81,7 @@ void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool 
     const std::string payloadString = payload.dump();
 
     const auto hint = hintPrefix + "Volume change (PUT) for a device: " + pnpId;
-    SPD_L->info("Enqueueing: {}...", hint);
+    spdlog::info("Enqueueing: {}...", hint);
 	// Instead of sending directly, enqueue the request in the processor
 
     const auto urlSuffix = std::format("/{}/{}", pnpId, getHostNameCallback_());
