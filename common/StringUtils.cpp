@@ -7,7 +7,5 @@
 
 std::string ed::Utf16ToUtf8(const std::wstring& str)
 {
-	return utility::conversions::to_utf8string(str);
+    return utility::conversions::to_utf8string(str);
 }
-
-

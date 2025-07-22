@@ -12,18 +12,18 @@ namespace fs = std::filesystem;
 
 namespace std::filesystem  // NOLINT(cert-dcl58-cpp)
 {
-	class path;
+    class path;
 }
 
 namespace ed::utility
 {
-	class AppPath
-	{
-	public:
-		static bool GetAndValidateLogFileInProgramData(std::filesystem::path& logFile, const std::string& appFileNameWoExt);
-	protected:
-		static void GetOwnProgramDataPath(std::filesystem::path& ownDataPath, const std::string& appFileNameWoExt);
-	};
+    class AppPath
+    {
+    public:
+        static bool GetAndValidateLogFileInProgramData(std::filesystem::path& logFile, const std::string& appFileNameWoExt);
+    protected:
+        static void GetOwnProgramDataPath(std::filesystem::path& ownDataPath, const std::string& appFileNameWoExt);
+    };
 }
 
 inline bool ed::utility::AppPath::GetAndValidateLogFileInProgramData(std::filesystem::path& logFile, const std::string& appFileNameWoExt)
@@ -59,7 +59,7 @@ inline bool ed::utility::AppPath::GetAndValidateLogFileInProgramData(std::filesy
 }
 
 inline void ed::utility::AppPath::GetOwnProgramDataPath(std::filesystem::path& ownDataPath,
-	const std::string& appFileNameWoExt)
+    const std::string& appFileNameWoExt)
 {
     LPWSTR pProgramDataPath;
     std::wstring wideProgramDataPath;

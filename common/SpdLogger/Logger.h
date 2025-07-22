@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <filesystem>
 
-#include "ClassDefHelper.h"
+#include "../ClassDefHelper.h"
 
 #include <string>
 
@@ -34,50 +34,50 @@
 
 namespace ed::model
 {
-	class Logger final
-	{
-	public:
-		DISALLOW_COPY_MOVE(Logger);
-	private:
-		Logger();
-	public:
-		~Logger() = default;
+    class Logger final
+    {
+    public:
+        DISALLOW_COPY_MOVE(Logger);
+    private:
+        Logger();
+    public:
+        ~Logger() = default;
 
-		static Logger& Inst();
+        static Logger& Inst();
 
-		Logger& ConfigureAppNameAndVersion(const std::string& appName, const std::string& appVersion);
+        Logger& ConfigureAppNameAndVersion(const std::string& appName, const std::string& appVersion);
 
-		Logger& SetPathName(const std::filesystem::path& fileName);
-		[[nodiscard]] std::filesystem::path GetPathName() const;
-		[[nodiscard]] std::wstring GetDir() const;
+        Logger& SetPathName(const std::filesystem::path& fileName);
+        [[nodiscard]] std::filesystem::path GetPathName() const;
+        [[nodiscard]] std::wstring GetDir() const;
 
-		Logger& SetOutputToConsole(bool isOutputToConsole);
-		[[nodiscard]] bool IsOutputToConsole() const { return isOutputToConsole_; }
+        Logger& SetOutputToConsole(bool isOutputToConsole);
+        [[nodiscard]] bool IsOutputToConsole() const { return isOutputToConsole_; }
 
-		Logger& SetDelimiterBetweenDateAndTime(const std::string& delimiterBetweenDateAndTime = " ");
-		[[nodiscard]] std::string GetDelimiterBetweenDateAndTime() const;
+        Logger& SetDelimiterBetweenDateAndTime(const std::string& delimiterBetweenDateAndTime = " ");
+        [[nodiscard]] std::string GetDelimiterBetweenDateAndTime() const;
 
-		void SetLogBuffer(std::shared_ptr<LogBuffer> logBuffer);
-		[[nodiscard]] bool IsLogBufferSet() const { return spLogBuffer_ != nullptr; }
+        void SetLogBuffer(std::shared_ptr<LogBuffer> logBuffer);
+        [[nodiscard]] bool IsLogBufferSet() const { return spLogBuffer_ != nullptr; }
 
-		void Free();
-	private:
-		void Reinit();
-	private:
-		std::shared_ptr<LogBuffer> spLogBuffer_;
-		std::filesystem::path pathName_;
-		bool isOutputToConsole_ = false;
-		std::string delimiterBetweenDateAndTime_ = " ";
-		std::shared_ptr<spdlog::details::thread_pool> threadPoolSmartPtr_;
-		std::string appName_;
-		std::string appVersion_;
-	};
+        void Free();
+    private:
+        void Reinit();
+    private:
+        std::shared_ptr<LogBuffer> spLogBuffer_;
+        std::filesystem::path pathName_;
+        bool isOutputToConsole_ = false;
+        std::string delimiterBetweenDateAndTime_ = " ";
+        std::shared_ptr<spdlog::details::thread_pool> threadPoolSmartPtr_;
+        std::string appName_;
+        std::string appVersion_;
+    };
 }
 
 
 inline ed::model::Logger::Logger():
-	appName_(RESOURCE_FILENAME_ATTRIBUTE),
-	appVersion_(ASSEMBLY_VERSION_ATTRIBUTE)
+    appName_(RESOURCE_FILENAME_ATTRIBUTE),
+    appVersion_(ASSEMBLY_VERSION_ATTRIBUTE)
 {
 }
 
@@ -99,40 +99,40 @@ inline ed::model::Logger& ed::model::Logger::ConfigureAppNameAndVersion(const st
 inline ed::model::Logger& ed::model::Logger::SetPathName(const std::filesystem::path& fileName)
 {
     pathName_ = fileName;
-	Reinit();
-	return *this;
+    Reinit();
+    return *this;
 }
 
 inline std::filesystem::path ed::model::Logger::GetPathName() const
 {
-	return pathName_;
+    return pathName_;
 }
 
 inline std::wstring ed::model::Logger::GetDir() const
 {
-	const auto* pathNamePtr = pathName_.c_str();
-	if
-	(
-		const wchar_t* found;
-		(found = wcsrchr(pathNamePtr, L'\\')) != nullptr ||
-		(found = wcsrchr(pathNamePtr, L'/')) != nullptr
-	)
-	{
-		return {pathNamePtr, found};
-	}
+    const auto* pathNamePtr = pathName_.c_str();
+    if
+    (
+        const wchar_t* found;
+        (found = wcsrchr(pathNamePtr, L'\\')) != nullptr ||
+        (found = wcsrchr(pathNamePtr, L'/')) != nullptr
+    )
+    {
+        return {pathNamePtr, found};
+    }
 
-	return pathName_;
+    return pathName_;
 }
 
 inline ed::model::Logger& ed::model::Logger::SetDelimiterBetweenDateAndTime(
-	const std::string& delimiterBetweenDateAndTime)
+    const std::string& delimiterBetweenDateAndTime)
 {
     if (delimiterBetweenDateAndTime_ != delimiterBetweenDateAndTime)
     {
         delimiterBetweenDateAndTime_ = delimiterBetweenDateAndTime;
-		Reinit();
-	}
-	return *this;
+        Reinit();
+    }
+    return *this;
 }
 
 inline std::string ed::model::Logger::GetDelimiterBetweenDateAndTime() const
@@ -143,7 +143,7 @@ inline std::string ed::model::Logger::GetDelimiterBetweenDateAndTime() const
 inline void ed::model::Logger::SetLogBuffer(std::shared_ptr<LogBuffer> logBuffer)
 {
     spLogBuffer_ = std::move(logBuffer);
-	Reinit();
+    Reinit();
 }
 
 inline ed::model::Logger& ed::model::Logger::SetOutputToConsole(bool isOutputToConsole)
@@ -151,81 +151,81 @@ inline ed::model::Logger& ed::model::Logger::SetOutputToConsole(bool isOutputToC
     if (isOutputToConsole_ != isOutputToConsole)
     {
         isOutputToConsole_ = isOutputToConsole;
-		Reinit();
-	}
-	return *this;
+        Reinit();
+    }
+    return *this;
 }
 
 
 inline void ed::model::Logger::Reinit()
 {
-	auto finalMessage = std::string();
-	spdlog::shutdown();
+    auto finalMessage = std::string();
+    spdlog::shutdown();
 
-	auto distributedSink = std::make_shared<spdlog::sinks::dist_sink_st>();
-	if (!pathName_.empty())
-	{
-		const auto rotatingFileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-			pathName_.string(), 1024 * 1024, 10);
-		distributedSink->add_sink(rotatingFileSink);
-		finalMessage += "Output to file ";
-		finalMessage += pathName_.string();
-	}
-	else
-	{
-		finalMessage += "No output to file";
-	}
+    auto distributedSink = std::make_shared<spdlog::sinks::dist_sink_st>();
+    if (!pathName_.empty())
+    {
+        const auto rotatingFileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+            pathName_.string(), 1024 * 1024, 10);
+        distributedSink->add_sink(rotatingFileSink);
+        finalMessage += "Output to file ";
+        finalMessage += pathName_.string();
+    }
+    else
+    {
+        finalMessage += "No output to file";
+    }
 
 
-	finalMessage += ", output to terminal (console)";
-	if (isOutputToConsole_)
-	{
-		const auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		distributedSink->add_sink(consoleSink);
-		finalMessage += " enabled";
-	}
-	else
-	{
-		finalMessage += " disabled";
-	}
+    finalMessage += ", output to terminal (console)";
+    if (isOutputToConsole_)
+    {
+        const auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        distributedSink->add_sink(consoleSink);
+        finalMessage += " enabled";
+    }
+    else
+    {
+        finalMessage += " disabled";
+    }
 
-	finalMessage += ", output to log buffer";
-	if (spLogBuffer_ != nullptr)
-	{
-		distributedSink->add_sink(spLogBuffer_);
-		finalMessage += " enabled";
-	}
-	else
-	{
-		finalMessage += " disabled";
-	}
+    finalMessage += ", output to log buffer";
+    if (spLogBuffer_ != nullptr)
+    {
+        distributedSink->add_sink(spLogBuffer_);
+        finalMessage += " enabled";
+    }
+    else
+    {
+        finalMessage += " disabled";
+    }
 
-	threadPoolSmartPtr_ = std::make_shared<
-		spdlog::details::thread_pool>(65536, 2);
+    threadPoolSmartPtr_ = std::make_shared<
+        spdlog::details::thread_pool>(65536, 2);
 
-	// Create an async_logger using that custom thread pool
-	const auto spdLogger = std::make_shared<spdlog::async_logger>(
-		RESOURCE_FILENAME_ATTRIBUTE,
-		distributedSink,
-		threadPoolSmartPtr_,
-		spdlog::async_overflow_policy::block
-	);
+    // Create an async_logger using that custom thread pool
+    const auto spdLogger = std::make_shared<spdlog::async_logger>(
+        RESOURCE_FILENAME_ATTRIBUTE,
+        distributedSink,
+        threadPoolSmartPtr_,
+        spdlog::async_overflow_policy::block
+    );
 
-	spdlog::register_logger(spdLogger);
-	spdlog::set_default_logger(spdLogger);
+    spdlog::register_logger(spdLogger);
+    spdlog::set_default_logger(spdLogger);
 
-	spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f %L [%t] %v");
-	spdlog::set_level(spdlog::level::debug);
-	spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
+    spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f %L [%t] %v");
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
 }
 
 inline void ed::model::Logger::Free()
 {
-	if (threadPoolSmartPtr_ == nullptr)
-	{
-		return;
-	}
-	spdlog::info("Log for {} (version {}) is being freed.", appName_, appVersion_);
-	spdlog::shutdown();
-	threadPoolSmartPtr_.reset(); // Explicitly reset the thread pool to free resources
+    if (threadPoolSmartPtr_ == nullptr)
+    {
+        return;
+    }
+    spdlog::info("Log for {} (version {}) is being freed.", appName_, appVersion_);
+    spdlog::shutdown();
+    threadPoolSmartPtr_.reset(); // Explicitly reset the thread pool to free resources
 }
