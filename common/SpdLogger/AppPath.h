@@ -1,35 +1,29 @@
 ﻿#pragma once
 
-#include <Windows.h>
-
 #include <filesystem>
 #include <sstream>
 
+#ifndef __linux__
+#include <Windows.h>
 #include <ShlObj.h>
+#endif
 
-namespace fs = std::filesystem;
-
-
-namespace std::filesystem  // NOLINT(cert-dcl58-cpp)
-{
-    class path;
-}
 
 namespace ed::utility
 {
     class AppPath
     {
     public:
-        static bool GetAndValidateLogFileInProgramData(std::filesystem::path& logFile, const std::string& appFileNameWoExt);
+        static bool GetAndValidateLogFilePathName(std::filesystem::path& logFile, const std::string& appFileNameWoExt);
     protected:
-        static void GetOwnProgramDataPath(std::filesystem::path& ownDataPath, const std::string& appFileNameWoExt);
+        static void GetLogDir(std::filesystem::path& ownDataPath, const std::string& appFileNameWoExt);
     };
 }
 
-inline bool ed::utility::AppPath::GetAndValidateLogFileInProgramData(std::filesystem::path& logFile, const std::string& appFileNameWoExt)
+inline bool ed::utility::AppPath::GetAndValidateLogFilePathName(std::filesystem::path& logFile, const std::string& appFileNameWoExt)
 {
     std::filesystem::path ownDataPath;
-    GetOwnProgramDataPath(ownDataPath, appFileNameWoExt);
+    GetLogDir(ownDataPath, appFileNameWoExt);
 
     auto logFileNameWoExt(appFileNameWoExt); // replace . via _
     while (logFileNameWoExt.find('.') != std::string::npos)
@@ -38,7 +32,7 @@ inline bool ed::utility::AppPath::GetAndValidateLogFileInProgramData(std::filesy
     }
     if (exists(ownDataPath) || create_directories(ownDataPath))
     {
-        fs::path logFilePathName;
+        std::filesystem::path logFilePathName;
         auto numberToIncrement = -1;
         do
         {
@@ -58,9 +52,10 @@ inline bool ed::utility::AppPath::GetAndValidateLogFileInProgramData(std::filesy
     return false;
 }
 
-inline void ed::utility::AppPath::GetOwnProgramDataPath(std::filesystem::path& ownDataPath,
+inline void ed::utility::AppPath::GetLogDir(std::filesystem::path& ownDataPath,
     const std::string& appFileNameWoExt)
 {
+#ifndef __linux__
     LPWSTR pProgramDataPath;
     std::wstring wideProgramDataPath;
 
@@ -69,7 +64,9 @@ inline void ed::utility::AppPath::GetOwnProgramDataPath(std::filesystem::path& o
         wideProgramDataPath = pProgramDataPath;
         CoTaskMemFree(pProgramDataPath);
     }
-
-    ownDataPath = fs::path(wideProgramDataPath) / appFileNameWoExt;
+    ownDataPath = std::filesystem::path(wideProgramDataPath) / appFileNameWoExt;
+#else
+    ownDataPath = std::filesystem::path(std::getenv("HOME")) / "logs";
+#endif
 }
 
