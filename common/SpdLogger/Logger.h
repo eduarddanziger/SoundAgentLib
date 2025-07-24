@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 #include <filesystem>
+#include <cwchar>
 
 #include "../ClassDefHelper.h"
 
@@ -110,7 +111,7 @@ inline std::filesystem::path ed::model::Logger::GetPathName() const
 
 inline std::wstring ed::model::Logger::GetDir() const
 {
-    const auto* pathNamePtr = pathName_.c_str();
+    const auto* pathNamePtr = pathName_.wstring().c_str();
     if
     (
         const wchar_t* found;
@@ -121,7 +122,7 @@ inline std::wstring ed::model::Logger::GetDir() const
         return {pathNamePtr, found};
     }
 
-    return pathName_;
+    return pathName_.wstring();
 }
 
 inline ed::model::Logger& ed::model::Logger::SetDelimiterBetweenDateAndTime(
