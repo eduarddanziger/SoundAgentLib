@@ -20,11 +20,11 @@ namespace ed::model
         {
         }
 
-        void set_pattern(const std::string& pattern) override
+        void set_pattern([[maybe_unused]] const std::string& pattern) override
         {
         }
 
-        void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) override
+        void set_formatter([[maybe_unused]] std::unique_ptr<spdlog::formatter> sink_formatter) override
         {
         }
 

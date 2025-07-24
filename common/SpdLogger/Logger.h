@@ -19,19 +19,12 @@
 // ReSharper disable CppClangTidyClangDiagnosticPragmaMessages
 #ifndef RESOURCE_FILENAME_ATTRIBUTE
 #define RESOURCE_FILENAME_ATTRIBUTE "UnknownAppFilename"
-#pragma message( "RESOURCE_FILENAME_ATTRIBUTE was not defined while including " __FILE__ ". We defined and set it to " RESOURCE_FILENAME_ATTRIBUTE ".")
-#else
-#pragma message( "RESOURCE_FILENAME_ATTRIBUTE is " RESOURCE_FILENAME_ATTRIBUTE " while including " __FILE__ ".")
 #endif
 
 #ifndef ASSEMBLY_VERSION_ATTRIBUTE
 #define ASSEMBLY_VERSION_ATTRIBUTE "UnknownAppVersion"
-#pragma message( "ASSEMBLY_VERSION_ATTRIBUTE was not defined while including " __FILE__ ". We defined and set it to " ASSEMBLY_VERSION_ATTRIBUTE ".")
-#else
-#pragma message( "ASSEMBLY_VERSION_ATTRIBUTE is " ASSEMBLY_VERSION_ATTRIBUTE " while including " __FILE__ ".")
 #endif
 // ReSharper restore CppClangTidyClangDiagnosticPragmaMessages
-
 
 namespace ed::model
 {

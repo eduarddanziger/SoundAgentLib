@@ -25,9 +25,9 @@ inline bool ed::utility::AppPath::GetAndValidateLogFilePathName(std::filesystem:
     std::filesystem::path ownDataPath;
     GetLogDir(ownDataPath, appFileNameWoExt);
 
-    auto logFileNameWoExt(appFileNameWoExt); // replace . via _
+    auto logFileNameWoExt(appFileNameWoExt);
     while (logFileNameWoExt.find('.') != std::string::npos)
-    {
+    { // replace . via _
         logFileNameWoExt.replace(logFileNameWoExt.find('.'), 1, "_");
     }
     if (exists(ownDataPath) || create_directories(ownDataPath))
@@ -53,7 +53,7 @@ inline bool ed::utility::AppPath::GetAndValidateLogFilePathName(std::filesystem:
 }
 
 inline void ed::utility::AppPath::GetLogDir(std::filesystem::path& ownDataPath,
-    const std::string& appFileNameWoExt)
+    [[maybe_unused]] const std::string& appFileNameWoExt)
 {
 #ifndef __linux__
     LPWSTR pProgramDataPath;
