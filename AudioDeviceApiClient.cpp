@@ -8,7 +8,6 @@
 
 #include <spdlog/spdlog.h>
 #include <string>
-#include <sstream>
 #include <nlohmann/json.hpp>
 
 #include "HttpRequestProcessorInterface.h"
