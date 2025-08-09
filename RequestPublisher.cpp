@@ -1,6 +1,6 @@
 ﻿#include "os-dependencies.h"
 
-#include "MetricsPublisher.h"
+#include "RequestPublisher.h"
 
 #include <rmqa_topology.h>
 #include <rmqa_producer.h>
@@ -19,7 +19,7 @@
 using namespace BloombergLP;
 
 
-MetricsPublisher::MetricsPublisher(const std::string& host, const std::string& vhost, const std::string& user,
+RequestPublisher::RequestPublisher(const std::string& host, const std::string& vhost, const std::string& user,
     const std::string& pass)
 {
     const bsl::shared_ptr<rmqt::Endpoint> endpoint =
@@ -38,7 +38,7 @@ MetricsPublisher::MetricsPublisher(const std::string& host, const std::string& v
     vhostSharedPtr_ = vhostSharedPtr;
 }
 
-void MetricsPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
+void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
     const std::string& urlSuffix) const
 {
     // Build topology
@@ -55,7 +55,7 @@ void MetricsPublisher::Publish(const nlohmann::json& payload, const std::string&
     }
     const bsl::shared_ptr<rmqa::Producer>& producer = prodRes.value();
 
-
+    // Prepare message
     nlohmann::json payloadExtended(payload);
     payloadExtended["httpRequest"] = httpRequest;
     payloadExtended["urlSuffix"] = urlSuffix;
@@ -64,6 +64,7 @@ void MetricsPublisher::Publish(const nlohmann::json& payload, const std::string&
     auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());
     rmqt::Message message(vecPtr, "", {});
 
+    // Send message
     producer->send(
         message,
         "metrics-capture",
@@ -73,11 +74,11 @@ void MetricsPublisher::Publish(const nlohmann::json& payload, const std::string&
         {
             if (confirm.status() != rmqt::ConfirmResponse::Status::ACK)
             {
-                std::cerr << "Message NACKed (" << routingKey << "): " << msgStr << "\n";
+                spdlog::error("Message NACKed ({}): {}", routingKey, msgStr);
             }
             else
             {
-                std::cout << "Message ACKed (" << routingKey << "): " << msgStr << "\n";
+                spdlog::info("Message ACKed ({}): {}", routingKey, msgStr);
             }
         }
     );

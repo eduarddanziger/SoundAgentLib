@@ -4,7 +4,7 @@
 
 #include "HttpRequestProcessorInterface.h"
 
-class MetricsPublisher;
+class RequestPublisher;
 
 class HttpGatewayProcessor final : public HttpRequestProcessorInterface
 {
@@ -24,5 +24,5 @@ public:
     ) override;
 
 private:
-    std::unique_ptr<MetricsPublisher> metricsPublisher_;
+    std::unique_ptr<RequestPublisher> requestPublisher_;
 };

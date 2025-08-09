@@ -5,15 +5,14 @@
 #include <spdlog/spdlog.h>
 #include <cpprest/http_client.h>
 
-#include "MetricsPublisher.h"
+#include "RequestPublisher.h"
 #include <nlohmann/json.hpp>
-
 
 using namespace BloombergLP;
 
 
 HttpGatewayProcessor::HttpGatewayProcessor()
-    : metricsPublisher_(std::make_unique<MetricsPublisher>("localhost", "/", "guest", "guest"))
+    : requestPublisher_(std::make_unique<RequestPublisher>("localhost", "/", "guest", "guest"))
 {
 }
 
@@ -23,5 +22,5 @@ void HttpGatewayProcessor::EnqueueRequest(bool postOrPut, const std::chrono::sys
                                           const std::string & payload, const std::unordered_map<std::string, std::string> & header, const std::string & hint)
 {
     const nlohmann::json jsonPayload = nlohmann::json::parse(payload);
-    metricsPublisher_->Publish(jsonPayload, postOrPut ? "POST" : "PUT", urlSuffix);
+    requestPublisher_->Publish(jsonPayload, postOrPut ? "POST" : "PUT", urlSuffix);
 }

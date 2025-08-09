@@ -4,10 +4,10 @@
 #include <rmqa_vhost.h>
 #include <nlohmann/json_fwd.hpp>
 
-class MetricsPublisher
+class RequestPublisher
 {
 public:
-    MetricsPublisher(const std::string& host,
+    RequestPublisher(const std::string& host,
                      const std::string& vhost,
                      const std::string& user,
                      const std::string& pass);
