@@ -1,7 +1,6 @@
 ﻿#include "os-dependencies.h"
 
 #include "AudioDeviceApiClient.h"
-#include "MetricsPublisher.h"
 
 #include "public/SoundAgentInterface.h"
 
@@ -12,31 +11,13 @@
 #include <sstream>
 #include <nlohmann/json.hpp>
 
-//TODO: why these 3 are unresolved?
-
-rmqt::SimpleEndpoint::SimpleEndpoint(bsl::string_view address,
-                                     bsl::string_view vhost,
-                                     bsl::uint16_t port)
-    : d_address(address)
-    , d_vhost(vhost)
-    , d_port(port)
-{
-}
-
-rmqt::PlainCredentials::PlainCredentials(bsl::string_view username,
-                                         bsl::string_view password)
-    : d_username(username)
-    , d_password(password)
-{
-}
-
-auto BloombergLP::BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME = "";
+#include "HttpRequestProcessorInterface.h"
 
 
 
 
 // ReSharper disable CppPassValueParameterByConstReference
-AudioDeviceApiClient::AudioDeviceApiClient(std::shared_ptr<HttpRequestProcessor> processor,
+AudioDeviceApiClient::AudioDeviceApiClient(HttpRequestProcessorInterface& processor,
                                            std::function<std::string()> getHostNameCallback,
                                            std::function<std::string()> getOperationSystemNameCallback
 )
@@ -83,8 +64,7 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
 
     spdlog::info("Enqueueing: {}...", hint);
 
-    const MetricsPublisher publisher("localhost", "/", "guest", "guest");
-    publisher.Publish(payload, "POST", "");
+    requestProcessor_.EnqueueRequest(true, nowTime, "", payloadString, {}, hint);
 }
 
 void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool renderOrCapture, uint16_t volume, const std::string& hintPrefix) const
@@ -109,7 +89,6 @@ void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool 
 
     const auto urlSuffix = std::format("/{}/{}", pnpId, getHostNameCallback_());
 
-    const MetricsPublisher publisher("localhost", "/", "guest", "guest");
-    publisher.Publish(payload, "PUT", urlSuffix);
+    requestProcessor_.EnqueueRequest(false, nowTime, urlSuffix, payloadString, {}, hint);
 }
 

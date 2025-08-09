@@ -1,13 +1,13 @@
 ﻿#include "os-dependencies.h"
 
-#include "HttpRequestProcessor.h"
+#include "HttpStandaloneProcessor.h"
 
 #include <spdlog/spdlog.h>
 #include <cpprest/http_client.h>
 #include <nlohmann/json.hpp>
 
 
-HttpRequestProcessor::HttpRequestProcessor(std::string apiBaseUrl,
+HttpStandaloneProcessor::HttpStandaloneProcessor(std::string apiBaseUrl,
                                            std::string universalToken,
                                            std::string codeSpaceName)  // Added codeSpaceName parameter
     : apiBaseUrlNoTrailingSlash_(std::move(apiBaseUrl))
@@ -15,10 +15,10 @@ HttpRequestProcessor::HttpRequestProcessor(std::string apiBaseUrl,
     , codeSpaceName_(std::move(codeSpaceName))  // Initialize new member
     , running_(true)
 {
-    workerThread_ = std::thread(&HttpRequestProcessor::ProcessingWorker, this);
+    workerThread_ = std::thread(&HttpStandaloneProcessor::ProcessingWorker, this);
 }
 
-HttpRequestProcessor::~HttpRequestProcessor()
+HttpStandaloneProcessor::~HttpStandaloneProcessor()
 {
     {
         std::unique_lock lock(mutex_);
@@ -31,7 +31,7 @@ HttpRequestProcessor::~HttpRequestProcessor()
     }
 }
 
-void HttpRequestProcessor::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
+void HttpStandaloneProcessor::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
                                           const std::string & payload, const std::unordered_map<std::string, std::string> & header, const std::string & hint)
 {
     std::unique_lock lock(mutex_);
@@ -50,7 +50,7 @@ void HttpRequestProcessor::EnqueueRequest(bool postOrPut, const std::chrono::sys
     condition_.notify_one();
 }
 
-bool HttpRequestProcessor::SendRequest(const RequestItem & requestItem, const std::string & urlBase)
+bool HttpStandaloneProcessor::SendRequest(const RequestItem & requestItem, const std::string & urlBase)
 {
     const auto messageDeviceAppendix = requestItem.Hint;
 
@@ -109,7 +109,7 @@ bool HttpRequestProcessor::SendRequest(const RequestItem & requestItem, const st
     return true;
 }
 
-void HttpRequestProcessor::ProcessingWorker()
+void HttpStandaloneProcessor::ProcessingWorker()
 {
     while (true)
     {
@@ -179,7 +179,7 @@ void HttpRequestProcessor::ProcessingWorker()
     }
 }
 
-HttpRequestProcessor::RequestItem HttpRequestProcessor::CreateAwakingRequest() const
+HttpStandaloneProcessor::RequestItem HttpStandaloneProcessor::CreateAwakingRequest() const
 {
     const nlohmann::json payload = {
         // ReSharper disable once StringLiteralTypo
@@ -189,7 +189,7 @@ HttpRequestProcessor::RequestItem HttpRequestProcessor::CreateAwakingRequest() c
     const std::string payloadString = payload.dump();
 
     const std::string authorizationValue = "Bearer " + universalToken_;
-    std::unordered_map<std::string, std::string> header{
+    const std::unordered_map<std::string, std::string> header{
         {"Authorization", authorizationValue},
         {"Accept", "application/vnd.github.v3+json"}
     };

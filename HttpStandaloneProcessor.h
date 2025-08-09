@@ -7,13 +7,14 @@
 #include <atomic>
 #include <chrono>
 #include <unordered_map>
-
 #include "common/ClassDefHelper.h"
+#include "HttpRequestProcessorInterface.h"
 
-class HttpRequestProcessor {
-
+class HttpStandaloneProcessor final : public HttpRequestProcessorInterface
+{
 public:
-    struct RequestItem {
+    struct RequestItem
+    {
         bool PostOrPut;
         std::chrono::system_clock::time_point Time;
         std::string UrlSuffix;
@@ -22,25 +23,25 @@ public:
         std::string Hint; // For logging/tracking
     };
 
-    HttpRequestProcessor(std::string apiBaseUrl,
+    HttpStandaloneProcessor(std::string apiBaseUrl,
                          std::string universalToken,
                          std::string codeSpaceName);
 
-    DISALLOW_COPY_MOVE(HttpRequestProcessor);
+    DISALLOW_COPY_MOVE(HttpStandaloneProcessor);
 
-    ~HttpRequestProcessor();
+    ~HttpStandaloneProcessor() override;
 
     void EnqueueRequest(
         bool postOrPut,
-        const std::chrono::system_clock::time_point & time,
-        const std::string & urlSuffix, const std::string & payload,
-        const std::unordered_map<std::string, std::string> & header,
-        const std::string & hint
-    );
+        const std::chrono::system_clock::time_point& time,
+        const std::string& urlSuffix, const std::string& payload,
+        const std::unordered_map<std::string, std::string>& header,
+        const std::string& hint
+    ) override;
 
 private:
     void ProcessingWorker();
-    static bool SendRequest(const RequestItem & requestItem, const std::string & urlBase);
+    static bool SendRequest(const RequestItem& requestItem, const std::string& urlBase);
     [[nodiscard]] RequestItem CreateAwakingRequest() const;
 
 private:
