@@ -13,6 +13,7 @@
 #include <bsl_string.h>
 #include <stdexcept>
 
+#include <future>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -20,84 +21,91 @@ using namespace BloombergLP;
 
 
 RequestPublisher::RequestPublisher(const std::string& host, const std::string& vhost, const std::string& user,
-    const std::string& pass)
+                                   const std::string& pass)
 {
-    const bsl::shared_ptr<rmqt::Endpoint> endpoint =
-        bsl::make_shared<rmqt::SimpleEndpoint>(host, vhost);
-
-    const bsl::shared_ptr<rmqt::Credentials> credentials =
-        bsl::make_shared<rmqt::PlainCredentials>(user, pass);
-
-    const rmqt::VHostInfo vhostInfo(endpoint, credentials);
-
-    const auto vhostSharedPtr = context_.createVHostConnection("metrics-publisher", vhostInfo);
+    const auto vhostSharedPtr = context_.createVHostConnection("metrics-publisher",
+                                                               bsl::make_shared<
+                                                                   rmqt::SimpleEndpoint>(host, vhost, 5672),
+                                                               bsl::make_shared<rmqt::PlainCredentials>(user, pass));
     if (!vhostSharedPtr)
     {
         throw std::runtime_error("VHost connection failed");
     }
     vhostSharedPtr_ = vhostSharedPtr;
-}
 
-void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
-    const std::string& urlSuffix) const
-{
-    // Build topology
     rmqa::Topology topology;
-    auto exchange = topology.addExchange("sdr_updates");
-    auto queue = topology.addQueue("sdr_metrics");
+    const auto exchange = topology.addExchange("sdr_updates");
+    const auto queue = topology.addQueue("sdr_metrics");
     topology.bind(exchange, queue, "metrics-capture");
 
     constexpr unsigned short maxUnconfirmed = 10;
     const auto prodRes = vhostSharedPtr_->createProducer(topology, exchange, maxUnconfirmed);
     if (!prodRes)
     {
-        throw std::runtime_error("Producer creation failed: " + prodRes.error());
+        const auto errorString = fmt::format(
+            "Producer creation failed: {}. Host: {}, VHost: {}, User: {}",
+            prodRes.error(), host, vhost, user);
+        spdlog::error(errorString);
+        throw std::runtime_error(errorString);
     }
-    const bsl::shared_ptr<rmqa::Producer>& producer = prodRes.value();
+    producer_ = prodRes.value();
+}
 
+void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
+                               const std::string& urlSuffix) const
+{
     // Prepare message
     nlohmann::json payloadExtended(payload);
     payloadExtended["httpRequest"] = httpRequest;
     payloadExtended["urlSuffix"] = urlSuffix;
 
-    std::string msgStr = payloadExtended.dump();
-    auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());
-    rmqt::Message message(vecPtr, "", {});
+    const std::string msgStr = payloadExtended.dump();
+    const auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());
+    const rmqt::Message message(vecPtr);
 
-    // Send message
-    producer->send(
-        message,
-        "metrics-capture",
-        [msgStr](const rmqt::Message&,
-                 const bsl::string& routingKey,
-                 const rmqt::ConfirmResponse& confirm)
-        {
-            if (confirm.status() != rmqt::ConfirmResponse::Status::ACK)
+    const rmqp::Producer::SendStatus sendResult =
+        producer_->send(
+            message,
+            "metrics-capture",
+            [msgStr](const rmqt::Message&,
+                     const bsl::string& routingKey,
+                     const rmqt::ConfirmResponse& confirm)
             {
-                spdlog::error("Message NACKed ({}): {}", routingKey, msgStr);
+                if (confirm.status() == rmqt::ConfirmResponse::Status::ACK)
+                {
+                    spdlog::info("Message ACKed ({}): {}", routingKey, msgStr);
+                }
+                else
+                {
+                    //REJECT / RETURN indicate problem with the send request. Bad routing key?
+                    spdlog::error("Message NOT ACKed ({}): {}", routingKey, msgStr);
+                }
             }
-            else
-            {
-                spdlog::info("Message ACKed ({}): {}", routingKey, msgStr);
-            }
-        }
-    );
+        );
+    if (sendResult != rmqp::Producer::SENDING)
+    {
+        spdlog::error("Unable to enqueue message {}.", msgStr);
+    }
+    else
+    {
+        spdlog::debug("Message enqueued: {}.", msgStr);
+    }
 }
 
-//TODO: why these 3 are unresolved?
+//TODO: why these 3 are unresolved and I need this ugly code?
 rmqt::SimpleEndpoint::SimpleEndpoint(bsl::string_view address,
-    bsl::string_view vhost,
-    bsl::uint16_t port)
+                                     bsl::string_view vhost,
+                                     bsl::uint16_t port)
     : d_address(address)
-    , d_vhost(vhost)
-    , d_port(port)
+      , d_vhost(vhost)
+      , d_port(port)
 {
 }
 
 rmqt::PlainCredentials::PlainCredentials(bsl::string_view username,
-    bsl::string_view password)
+                                         bsl::string_view password)
     : d_username(username)
-    , d_password(password)
+      , d_password(password)
 {
 }
 
