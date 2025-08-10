@@ -8,14 +8,15 @@
 
 #include <spdlog/spdlog.h>
 #include <string>
-#include <sstream>
 #include <nlohmann/json.hpp>
 
-#include "HttpRequestProcessor.h"
+#include "HttpRequestProcessorInterface.h"
+
+
 
 
 // ReSharper disable CppPassValueParameterByConstReference
-AudioDeviceApiClient::AudioDeviceApiClient(std::shared_ptr<HttpRequestProcessor> processor,
+AudioDeviceApiClient::AudioDeviceApiClient(HttpRequestProcessorInterface& processor,
                                            std::function<std::string()> getHostNameCallback,
                                            std::function<std::string()> getOperationSystemNameCallback
 )
@@ -54,7 +55,6 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
         {"captureVolume", device->GetCurrentCaptureVolume()},
         {"updateDate", timeAsUtcString},
         {"deviceMessageType", eventType}
-        
     };
 
     // Convert nlohmann::json to string and to value
@@ -62,7 +62,8 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
     const auto hint = hintPrefix + "Post a device." + device->GetPnpId();
 
     spdlog::info("Enqueueing: {}...", hint);
-    requestProcessor_->EnqueueRequest(true, nowTime, "", payloadString, {}, hint);
+
+    requestProcessor_.EnqueueRequest(true, nowTime, "", payloadString, {}, hint);
 }
 
 void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool renderOrCapture, uint16_t volume, const std::string& hintPrefix) const
@@ -86,6 +87,7 @@ void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool 
     // Instead of sending directly, enqueue the request in the processor
 
     const auto urlSuffix = std::format("/{}/{}", pnpId, getHostNameCallback_());
-    requestProcessor_->EnqueueRequest(false, nowTime, urlSuffix, payloadString, {}, hint);
+
+    requestProcessor_.EnqueueRequest(false, nowTime, urlSuffix, payloadString, {}, hint);
 }
 

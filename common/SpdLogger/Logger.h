@@ -2,7 +2,6 @@
 
 #include <spdlog/spdlog.h>
 #include <filesystem>
-#include <cwchar>
 
 #include "../ClassDefHelper.h"
 
