@@ -6,14 +6,14 @@
 #include "public/SoundAgentInterface.h"
 
 
-class HttpRequestProcessorInterface;
-class HttpStandaloneProcessor;
+class HttpRequestDispatcherInterface;
+class DirectHttpRequestDispatcher;
 class SoundDeviceInterface;
 
 
 class AudioDeviceApiClient {
 public:
-    AudioDeviceApiClient(HttpRequestProcessorInterface &processor,
+    AudioDeviceApiClient(HttpRequestDispatcherInterface &processor,
                          std::function<std::string()> getHostNameCallback,
                          std::function<std::string()> getOperationSystemNameCallback
     );
@@ -24,7 +24,7 @@ public:
                               const std::string& hintPrefix) const;
 
 private:
-    HttpRequestProcessorInterface& requestProcessor_;
+    HttpRequestDispatcherInterface& requestProcessor_;
     std::function<std::string()> getHostNameCallback_;
     std::function<std::string()> getOperationSystemNameCallback_;
 };

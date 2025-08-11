@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-class HttpRequestProcessorInterface
+class HttpRequestDispatcherInterface
 {
 public:
     virtual void EnqueueRequest(
@@ -17,6 +17,6 @@ public:
         const std::unordered_map<std::string, std::string>& header,
         const std::string& hint
     ) = 0;
-    AS_INTERFACE(HttpRequestProcessorInterface);
-    DISALLOW_COPY_MOVE(HttpRequestProcessorInterface);
+    AS_INTERFACE(HttpRequestDispatcherInterface);
+    DISALLOW_COPY_MOVE(HttpRequestDispatcherInterface);
 };

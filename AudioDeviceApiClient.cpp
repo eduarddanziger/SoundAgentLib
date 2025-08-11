@@ -10,13 +10,13 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-#include "HttpRequestProcessorInterface.h"
+#include "HttpRequestDispatcherInterface.h"
 
 
 
 
 // ReSharper disable CppPassValueParameterByConstReference
-AudioDeviceApiClient::AudioDeviceApiClient(HttpRequestProcessorInterface& processor,
+AudioDeviceApiClient::AudioDeviceApiClient(HttpRequestDispatcherInterface& processor,
                                            std::function<std::string()> getHostNameCallback,
                                            std::function<std::string()> getOperationSystemNameCallback
 )
