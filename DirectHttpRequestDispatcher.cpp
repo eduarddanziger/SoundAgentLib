@@ -1,13 +1,13 @@
 ﻿#include "os-dependencies.h"
 
-#include "HttpStandaloneProcessor.h"
+#include "DirectHttpRequestDispatcher.h"
 
 #include <spdlog/spdlog.h>
 #include <cpprest/http_client.h>
 #include <nlohmann/json.hpp>
 
 
-HttpStandaloneProcessor::HttpStandaloneProcessor(std::string apiBaseUrl,
+DirectHttpRequestDispatcher::DirectHttpRequestDispatcher(std::string apiBaseUrl,
                                            std::string universalToken,
                                            std::string codeSpaceName)  // Added codeSpaceName parameter
     : apiBaseUrlNoTrailingSlash_(std::move(apiBaseUrl))
@@ -15,10 +15,10 @@ HttpStandaloneProcessor::HttpStandaloneProcessor(std::string apiBaseUrl,
     , codeSpaceName_(std::move(codeSpaceName))  // Initialize new member
     , running_(true)
 {
-    workerThread_ = std::thread(&HttpStandaloneProcessor::ProcessingWorker, this);
+    workerThread_ = std::thread(&DirectHttpRequestDispatcher::ProcessingWorker, this);
 }
 
-HttpStandaloneProcessor::~HttpStandaloneProcessor()
+DirectHttpRequestDispatcher::~DirectHttpRequestDispatcher()
 {
     {
         std::unique_lock lock(mutex_);
@@ -31,7 +31,7 @@ HttpStandaloneProcessor::~HttpStandaloneProcessor()
     }
 }
 
-void HttpStandaloneProcessor::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
+void DirectHttpRequestDispatcher::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
                                           const std::string & payload, const std::unordered_map<std::string, std::string> & header, const std::string & hint)
 {
     std::unique_lock lock(mutex_);
@@ -50,7 +50,7 @@ void HttpStandaloneProcessor::EnqueueRequest(bool postOrPut, const std::chrono::
     condition_.notify_one();
 }
 
-bool HttpStandaloneProcessor::SendRequest(const RequestItem & requestItem, const std::string & urlBase)
+bool DirectHttpRequestDispatcher::SendRequest(const RequestItem & requestItem, const std::string & urlBase)
 {
     const auto messageDeviceAppendix = requestItem.Hint;
 
@@ -109,7 +109,7 @@ bool HttpStandaloneProcessor::SendRequest(const RequestItem & requestItem, const
     return true;
 }
 
-void HttpStandaloneProcessor::ProcessingWorker()
+void DirectHttpRequestDispatcher::ProcessingWorker()
 {
     while (true)
     {
@@ -179,7 +179,7 @@ void HttpStandaloneProcessor::ProcessingWorker()
     }
 }
 
-HttpStandaloneProcessor::RequestItem HttpStandaloneProcessor::CreateAwakingRequest() const
+DirectHttpRequestDispatcher::RequestItem DirectHttpRequestDispatcher::CreateAwakingRequest() const
 {
     const nlohmann::json payload = {
         // ReSharper disable once StringLiteralTypo

@@ -2,18 +2,18 @@
 
 #include "common/ClassDefHelper.h"
 
-#include "HttpRequestProcessorInterface.h"
+#include "HttpRequestDispatcherInterface.h"
 
 class RequestPublisher;
 
-class HttpGatewayProcessor final : public HttpRequestProcessorInterface
+class RabbitMqHttpRequestDispatcher final : public HttpRequestDispatcherInterface
 {
 public:
-    HttpGatewayProcessor();
+    RabbitMqHttpRequestDispatcher();
 
-    DISALLOW_COPY_MOVE(HttpGatewayProcessor);
+    DISALLOW_COPY_MOVE(RabbitMqHttpRequestDispatcher);
 
-    ~HttpGatewayProcessor() override;
+    ~RabbitMqHttpRequestDispatcher() override;
 
     void EnqueueRequest(
         bool postOrPut,

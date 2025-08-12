@@ -8,9 +8,9 @@
 #include <chrono>
 #include <unordered_map>
 #include "common/ClassDefHelper.h"
-#include "HttpRequestProcessorInterface.h"
+#include "HttpRequestDispatcherInterface.h"
 
-class HttpStandaloneProcessor final : public HttpRequestProcessorInterface
+class DirectHttpRequestDispatcher final : public HttpRequestDispatcherInterface
 {
 public:
     struct RequestItem
@@ -23,13 +23,13 @@ public:
         std::string Hint; // For logging/tracking
     };
 
-    HttpStandaloneProcessor(std::string apiBaseUrl,
+    DirectHttpRequestDispatcher(std::string apiBaseUrl,
                          std::string universalToken,
                          std::string codeSpaceName);
 
-    DISALLOW_COPY_MOVE(HttpStandaloneProcessor);
+    DISALLOW_COPY_MOVE(DirectHttpRequestDispatcher);
 
-    ~HttpStandaloneProcessor() override;
+    ~DirectHttpRequestDispatcher() override;
 
     void EnqueueRequest(
         bool postOrPut,
