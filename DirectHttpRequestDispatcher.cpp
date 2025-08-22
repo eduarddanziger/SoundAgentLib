@@ -34,6 +34,7 @@ DirectHttpRequestDispatcher::~DirectHttpRequestDispatcher()
 void DirectHttpRequestDispatcher::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
                                           const std::string & payload, const std::unordered_map<std::string, std::string> & header, const std::string & hint)
 {
+    spdlog::info("Putting to the direct internal queue: {}...", hint);
     std::unique_lock lock(mutex_);
 
     // Add to queue
