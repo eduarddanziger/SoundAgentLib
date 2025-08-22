@@ -18,7 +18,8 @@ public:
         const std::string& urlSuffix) const;
 
 private:
-    BloombergLP::rmqa::RabbitContext context_;
+    bsl::shared_ptr<BloombergLP::rmqa::RabbitContextOptions> contextOptionsSmartPtr_;
+    bsl::shared_ptr<BloombergLP::rmqa::RabbitContext> contextSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::VHost> vhostSharedPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::Producer> producer_;
 };

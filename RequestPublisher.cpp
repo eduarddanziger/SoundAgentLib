@@ -21,12 +21,24 @@ using namespace BloombergLP;
 
 
 RequestPublisher::RequestPublisher(const std::string& host, const std::string& vhost, const std::string& user,
-                                   const std::string& pass)
+    const std::string& pass) :
+    contextOptionsSmartPtr_(bsl::make_shared<rmqa::RabbitContextOptions>())
 {
-    const auto vhostSharedPtr = context_.createVHostConnection("metrics-publisher",
-                                                               bsl::make_shared<
-                                                                   rmqt::SimpleEndpoint>(host, vhost, 5672),
-                                                               bsl::make_shared<rmqt::PlainCredentials>(user, pass));
+    contextOptionsSmartPtr_->setConnectionErrorThreshold(
+        bsls::TimeInterval(20, 0)) // 20 seconds
+        .setErrorCallback([](const bsl::string& errorText, int errorCode)
+            {
+                spdlog::error("RabbitMQ unrecoverable error: {}. Exiting...", errorText);
+                std::exit(0);
+            });
+
+    contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
+    const auto vhostSharedPtr = contextSmartPtr_->createVHostConnection
+    ("metrics-publisher",
+        bsl::make_shared<
+        rmqt::SimpleEndpoint>(host, vhost, 5672),
+        bsl::make_shared<rmqt::PlainCredentials>(user, pass)
+    );
     if (!vhostSharedPtr)
     {
         throw std::runtime_error("VHost connection failed");
