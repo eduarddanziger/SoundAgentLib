@@ -103,7 +103,8 @@ inline std::filesystem::path ed::model::Logger::GetPathName() const
 
 inline std::wstring ed::model::Logger::GetDir() const
 {
-    const auto* pathNamePtr = pathName_.wstring().c_str();
+    auto pathName = pathName_.wstring();
+    const wchar_t* pathNamePtr = pathName.c_str();
     if
     (
         const wchar_t* found;
@@ -114,7 +115,7 @@ inline std::wstring ed::model::Logger::GetDir() const
         return {pathNamePtr, found};
     }
 
-    return pathName_.wstring();
+    return pathName;
 }
 
 inline ed::model::Logger& ed::model::Logger::SetDelimiterBetweenDateAndTime(
