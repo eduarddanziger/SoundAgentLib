@@ -14,6 +14,8 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <utility>
+#include <spdlog/pattern_formatter.h>
+
 
 // ReSharper disable CppClangTidyClangDiagnosticPragmaMessages
 #ifndef RESOURCE_FILENAME_ATTRIBUTE
@@ -27,6 +29,49 @@
 
 namespace ed::model
 {
+    typedef void(TMessageCallback)(const std::string& level, const std::string& message);
+
+    class CallbackSink final : public spdlog::sinks::sink
+    {
+    public:
+        explicit CallbackSink(TMessageCallback* callback)
+            : callback_(callback)
+            , formatter_(std::make_unique<spdlog::pattern_formatter>("%v"))
+        {
+        }
+        void log(const spdlog::details::log_msg& msg) override
+        {
+            if (callback_ != nullptr)
+            {
+                spdlog::memory_buf_t formatted;
+                if (formatter_)
+                {
+                    formatter_->format(msg, formatted);
+                }
+                // Convert level to std::string explicitly
+                const auto levelSv = spdlog::level::to_string_view(msg.level);
+                const std::string levelStr(levelSv.data(), levelSv.size());
+                callback_(levelStr, fmt::to_string(formatted));
+            }
+        }
+        void flush() override
+        {
+        }
+        void set_pattern(const std::string& pattern) override
+        {
+            set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
+        }
+        void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) override
+        {
+            formatter_ = std::move(sink_formatter);
+        }
+    private:
+        TMessageCallback *callback_;
+        std::unique_ptr<spdlog::formatter> formatter_;
+    };
+
+
+
     class Logger final
     {
     public:
@@ -50,6 +95,9 @@ namespace ed::model
         Logger& SetDelimiterBetweenDateAndTime(const std::string& delimiterBetweenDateAndTime = " ");
         [[nodiscard]] std::string GetDelimiterBetweenDateAndTime() const;
 
+        Logger& SetMessageCallback(TMessageCallback messageCallback);
+        [[nodiscard]] bool IsMessageCallbackSet() const { return messageCallback_ != nullptr; }
+
         void SetLogBuffer(std::shared_ptr<LogBuffer> logBuffer);
         [[nodiscard]] bool IsLogBufferSet() const { return spLogBuffer_ != nullptr; }
 
@@ -64,6 +112,7 @@ namespace ed::model
         std::shared_ptr<spdlog::details::thread_pool> threadPoolSmartPtr_;
         std::string appName_;
         std::string appVersion_;
+        TMessageCallback* messageCallback_;
     };
 }
 
@@ -134,6 +183,13 @@ inline std::string ed::model::Logger::GetDelimiterBetweenDateAndTime() const
     return delimiterBetweenDateAndTime_;
 }
 
+inline ed::model::Logger& ed::model::Logger::SetMessageCallback(TMessageCallback messageCallback)
+{
+    messageCallback_ = messageCallback;
+    Reinit();
+    return *this;
+}
+
 inline void ed::model::Logger::SetLogBuffer(std::shared_ptr<LogBuffer> logBuffer)
 {
     spLogBuffer_ = std::move(logBuffer);
@@ -192,6 +248,17 @@ inline void ed::model::Logger::Reinit()
     else
     {
         finalMessage += " disabled";
+    }
+
+    if (messageCallback_ != nullptr)
+    {
+        const auto callbackSink = std::make_shared<CallbackSink>(messageCallback_);
+        distributedSink->add_sink(callbackSink);
+        finalMessage += ", output to callback enabled";
+    }
+    else
+    {
+        finalMessage += ", output to callback disabled";
     }
 
     threadPoolSmartPtr_ = std::make_shared<
