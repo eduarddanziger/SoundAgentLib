@@ -29,48 +29,9 @@
 
 namespace ed::model
 {
-    typedef void(TMessageCallback)(const std::string& level, const std::string& message);
+    using TMessageCallback = void(const std::string& level, const std::string& message);
 
-    class CallbackSink final : public spdlog::sinks::sink
-    {
-    public:
-        explicit CallbackSink(TMessageCallback* callback)
-            : callback_(callback)
-            , formatter_(std::make_unique<spdlog::pattern_formatter>("%v"))
-        {
-        }
-        void log(const spdlog::details::log_msg& msg) override
-        {
-            if (callback_ != nullptr)
-            {
-                spdlog::memory_buf_t formatted;
-                if (formatter_)
-                {
-                    formatter_->format(msg, formatted);
-                }
-                // Convert level to std::string explicitly
-                const auto levelSv = spdlog::level::to_string_view(msg.level);
-                const std::string levelStr(levelSv.data(), levelSv.size());
-                callback_(levelStr, fmt::to_string(formatted));
-            }
-        }
-        void flush() override
-        {
-        }
-        void set_pattern(const std::string& pattern) override
-        {
-            set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
-        }
-        void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) override
-        {
-            formatter_ = std::move(sink_formatter);
-        }
-    private:
-        TMessageCallback *callback_;
-        std::unique_ptr<spdlog::formatter> formatter_;
-    };
-
-
+    class CallbackSink;
 
     class Logger final
     {
@@ -114,12 +75,40 @@ namespace ed::model
         std::string appVersion_;
         TMessageCallback* messageCallback_;
     };
+
+    class CallbackSink final : public spdlog::sinks::sink
+    {
+    public:
+        explicit CallbackSink(TMessageCallback* callback);
+
+        void log(const spdlog::details::log_msg& msg) override;
+
+        void flush() override
+        {
+        }
+
+        void set_pattern(const std::string& pattern) override
+        {
+            set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
+        }
+
+        void set_formatter(std::unique_ptr<spdlog::formatter> sinkFormatter) override
+        {
+            formatter_ = std::move(sinkFormatter);
+        }
+    private:
+        TMessageCallback* callback_;
+        std::unique_ptr<spdlog::formatter> formatter_;
+    };
+
+
 }
 
 
-inline ed::model::Logger::Logger():
-    appName_(RESOURCE_FILENAME_ATTRIBUTE),
-    appVersion_(ASSEMBLY_VERSION_ATTRIBUTE)
+inline ed::model::Logger::Logger()
+    : appName_(RESOURCE_FILENAME_ATTRIBUTE)
+      , appVersion_(ASSEMBLY_VERSION_ATTRIBUTE)
+      , messageCallback_(nullptr)
 {
 }
 
@@ -250,15 +239,16 @@ inline void ed::model::Logger::Reinit()
         finalMessage += " disabled";
     }
 
+    finalMessage += ", output to external callback";
     if (messageCallback_ != nullptr)
     {
         const auto callbackSink = std::make_shared<CallbackSink>(messageCallback_);
         distributedSink->add_sink(callbackSink);
-        finalMessage += ", output to callback enabled";
+        finalMessage += " enabled";
     }
     else
     {
-        finalMessage += ", output to callback disabled";
+        finalMessage += " disabled";
     }
 
     threadPoolSmartPtr_ = std::make_shared<
@@ -278,6 +268,28 @@ inline void ed::model::Logger::Reinit()
     spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f %L [%t] %v");
     spdlog::set_level(spdlog::level::debug);
     spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
+}
+
+inline ed::model::CallbackSink::CallbackSink(TMessageCallback* callback)
+    : callback_(callback)
+      , formatter_(std::make_unique<spdlog::pattern_formatter>("%v"))
+{
+}
+
+inline void ed::model::CallbackSink::log(const spdlog::details::log_msg& msg)
+{
+    if (callback_ != nullptr)
+    {
+        spdlog::memory_buf_t formatted;
+        if (formatter_)
+        {
+            formatter_->format(msg, formatted);
+        }
+
+        const auto levelStringView = spdlog::level::to_string_view(msg.level);
+        const std::string levelString(levelStringView.data(), levelStringView.size());
+        callback_(levelString, fmt::to_string(formatted));
+    }
 }
 
 inline void ed::model::Logger::Free()
