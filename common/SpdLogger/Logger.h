@@ -87,15 +87,10 @@ namespace ed::model
         {
         }
 
-        void set_pattern(const std::string& pattern) override
-        {
-            set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
-        }
+        void set_pattern([[maybe_unused]] const std::string& pattern) override;
 
-        void set_formatter(std::unique_ptr<spdlog::formatter> sinkFormatter) override
-        {
-            formatter_ = std::move(sinkFormatter);
-        }
+        void set_formatter([[maybe_unused]] std::unique_ptr<spdlog::formatter> sinkFormatter) override;
+
     private:
         TMessageCallback* callback_;
         std::unique_ptr<spdlog::formatter> formatter_;
@@ -270,6 +265,17 @@ inline void ed::model::Logger::Reinit()
     spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
 }
 
+inline void ed::model::Logger::Free()
+{
+    if (threadPoolSmartPtr_ == nullptr)
+    {
+        return;
+    }
+    spdlog::info("Log for {} (version {}) is being freed.", appName_, appVersion_);
+    spdlog::shutdown();
+    threadPoolSmartPtr_.reset(); // Explicitly reset the thread pool to free resources
+}
+
 inline ed::model::CallbackSink::CallbackSink(TMessageCallback* callback)
     : callback_(callback)
       , formatter_(std::make_unique<spdlog::pattern_formatter>("%v"))
@@ -292,13 +298,16 @@ inline void ed::model::CallbackSink::log(const spdlog::details::log_msg& msg)
     }
 }
 
-inline void ed::model::Logger::Free()
+inline void ed::model::CallbackSink::set_pattern(const std::string& pattern)
 {
-    if (threadPoolSmartPtr_ == nullptr)
-    {
-        return;
-    }
-    spdlog::info("Log for {} (version {}) is being freed.", appName_, appVersion_);
-    spdlog::shutdown();
-    threadPoolSmartPtr_.reset(); // Explicitly reset the thread pool to free resources
+    // Enforce pure %v regardless of requested pattern
+    formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");
+    // set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
+}
+
+inline void ed::model::CallbackSink::set_formatter(std::unique_ptr<spdlog::formatter> sinkFormatter)
+{
+    // Prevent overriding with non-%v formatter
+    formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");
+    // formatter_ = std::move(sinkFormatter);
 }
