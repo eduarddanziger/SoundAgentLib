@@ -25,7 +25,7 @@ public:
 
     DirectHttpRequestDispatcher(std::string apiBaseUrl,
                          std::string universalToken,
-                         std::string codeSpaceName);
+                         std::string gitHubCodespaceToBeAwaken);
 
     DISALLOW_COPY_MOVE(DirectHttpRequestDispatcher);
 
@@ -47,7 +47,7 @@ private:
 private:
     std::string apiBaseUrlNoTrailingSlash_;
     std::string universalToken_;
-    std::string codeSpaceName_;
+    std::string gitHubCodespaceToBeAwaken_;
 
     std::deque<RequestItem> requestQueue_;
     std::mutex mutex_;

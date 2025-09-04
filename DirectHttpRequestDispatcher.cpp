@@ -9,10 +9,10 @@
 
 DirectHttpRequestDispatcher::DirectHttpRequestDispatcher(std::string apiBaseUrl,
                                            std::string universalToken,
-                                           std::string codeSpaceName)  // Added codeSpaceName parameter
+                                           std::string gitHubCodespaceToBeAwaken)
     : apiBaseUrlNoTrailingSlash_(std::move(apiBaseUrl))
     , universalToken_(std::move(universalToken))
-    , codeSpaceName_(std::move(codeSpaceName))  // Initialize new member
+    , gitHubCodespaceToBeAwaken_(std::move(gitHubCodespaceToBeAwaken))
     , running_(true)
 {
     workerThread_ = std::thread(&DirectHttpRequestDispatcher::ProcessingWorker, this);
@@ -160,7 +160,7 @@ void DirectHttpRequestDispatcher::ProcessingWorker()
         {   // Wake-retrials are yet to be exhausted
             if (apiBaseUrlNoTrailingSlash_.find(".github.") != std::string::npos)
             {   // send Codespace-awaking request
-                const auto url = std::format("https://api.github.com/user/codespaces/{}/start", codeSpaceName_);
+                const auto url = std::format("https://api.github.com/user/codespaces/{}/start", gitHubCodespaceToBeAwaken_);
                 spdlog::info(R"(Send awaking request to GitHub Codespace"{}".)", url);
                 SendRequest(
                     CreateAwakingRequest()
@@ -184,7 +184,7 @@ DirectHttpRequestDispatcher::RequestItem DirectHttpRequestDispatcher::CreateAwak
 {
     const nlohmann::json payload = {
         // ReSharper disable once StringLiteralTypo
-        {"codespace_name", codeSpaceName_}
+        {"codespace_name", gitHubCodespaceToBeAwaken_}
     };
     // Convert nlohmann::json to string and to value
     const std::string payloadString = payload.dump();

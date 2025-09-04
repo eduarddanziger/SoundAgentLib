@@ -46,9 +46,9 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     vhostSharedPtr_ = vhostSharedPtr;
 
     rmqa::Topology topology;
-    const auto exchange = topology.addExchange("sdr_updates");
-    const auto queue = topology.addQueue("sdr_metrics");
-    topology.bind(exchange, queue, "metrics-capture");
+    const auto exchange = topology.addExchange("sdr_exchange");
+    const auto queue = topology.addQueue("sdr_queue");
+    topology.bind(exchange, queue, "sdr_bind");
 
     constexpr unsigned short maxUnconfirmed = 10;
     const auto prodRes = vhostSharedPtr_->createProducer(topology, exchange, maxUnconfirmed);
