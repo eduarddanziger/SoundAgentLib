@@ -22,8 +22,8 @@
 #define RESOURCE_FILENAME_ATTRIBUTE "UnknownAppFilename"
 #endif
 
-#ifndef ASSEMBLY_VERSION_ATTRIBUTE
-#define ASSEMBLY_VERSION_ATTRIBUTE "UnknownAppVersion"
+#ifndef PRODUCT_VERSION_ATTRIBUTE
+#define PRODUCT_VERSION_ATTRIBUTE "UnknownAppVersion"
 #endif
 // ReSharper restore CppClangTidyClangDiagnosticPragmaMessages
 
@@ -102,7 +102,7 @@ namespace ed::model
 
 inline ed::model::Logger::Logger()
     : appName_(RESOURCE_FILENAME_ATTRIBUTE)
-      , appVersion_(ASSEMBLY_VERSION_ATTRIBUTE)
+      , appVersion_(PRODUCT_VERSION_ATTRIBUTE)
       , messageCallback_(nullptr)
 {
 }
