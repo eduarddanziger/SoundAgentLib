@@ -8,7 +8,6 @@
 #include <rmqt_message.h>
 #include <rmqt_simpleendpoint.h>
 #include <rmqt_plaincredentials.h>
-#include <rmqt_vhostinfo.h>
 
 #include <bsl_string.h>
 #include <stdexcept>
@@ -34,7 +33,7 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
 
     contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
     const auto vhostSharedPtr = contextSmartPtr_->createVHostConnection
-    ("metrics-publisher",
+    ("sdr-publisher",
         bsl::make_shared<
         rmqt::SimpleEndpoint>(host, vhost, 5672),
         bsl::make_shared<rmqt::PlainCredentials>(user, pass)
@@ -46,9 +45,9 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     vhostSharedPtr_ = vhostSharedPtr;
 
     rmqa::Topology topology;
-    const auto exchange = topology.addExchange("sdr_exchange");
-    const auto queue = topology.addQueue("sdr_queue");
-    topology.bind(exchange, queue, "sdr_bind");
+    const auto exchange = topology.addExchange(RQM_EXCHANGE_NAME);
+    const auto queue = topology.addQueue(RQM_QUEUE_NAME);
+    topology.bind(exchange, queue, RQM_ROUTING_KEY);
 
     constexpr unsigned short maxUnconfirmed = 10;
     const auto prodRes = vhostSharedPtr_->createProducer(topology, exchange, maxUnconfirmed);
@@ -78,7 +77,7 @@ void RequestPublisher::Publish(const nlohmann::json& payload, const std::string&
     const rmqp::Producer::SendStatus sendResult =
         producer_->send(
             message,
-            "metrics-capture",
+            RQM_ROUTING_KEY,
             [msgStr](const rmqt::Message&,
                      const bsl::string& routingKey,
                      const rmqt::ConfirmResponse& confirm)
@@ -89,7 +88,6 @@ void RequestPublisher::Publish(const nlohmann::json& payload, const std::string&
                 }
                 else
                 {
-                    //REJECT / RETURN indicate problem with the send request. Bad routing key?
                     spdlog::error("Message NOT ACKed ({}): {}", routingKey, msgStr);
                 }
             }
