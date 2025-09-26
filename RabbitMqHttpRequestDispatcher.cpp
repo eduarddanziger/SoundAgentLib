@@ -2,11 +2,11 @@
 
 #include "RabbitMqHttpRequestDispatcher.h"
 
-#include <spdlog/spdlog.h>
-#include <cpprest/http_client.h>
-
 #include "RequestPublisher.h"
+
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
 
 using namespace BloombergLP;
 
