@@ -1,6 +1,7 @@
 ﻿#include "os-dependencies.h"
 
 #include "RequestPublisher.h"
+#include "Contracts.h"
 
 #include <rmqa_topology.h>
 #include <rmqa_producer.h>
@@ -15,6 +16,7 @@
 #include <future>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+
 
 using namespace BloombergLP;
 
@@ -67,8 +69,8 @@ void RequestPublisher::Publish(const nlohmann::json& payload, const std::string&
 {
     // Prepare message
     nlohmann::json payloadExtended(payload);
-    payloadExtended["httpRequest"] = httpRequest;
-    payloadExtended["urlSuffix"] = urlSuffix;
+    payloadExtended[std::string(contracts::message_fields::HTTP_REQUEST)] = httpRequest;
+    payloadExtended[std::string(contracts::message_fields::URL_SUFFIX)] = urlSuffix;
 
     const std::string msgStr = payloadExtended.dump();
     const auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());

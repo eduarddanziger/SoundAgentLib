@@ -2,6 +2,9 @@
 
 #include "AudioDeviceApiClient.h"
 
+#include "ApiClient/Contracts.h"
+
+
 #include "public/SoundAgentInterface.h"
 
 #include "common/TimeUtil.h"
@@ -53,8 +56,8 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
         {"flowType", device->GetFlow()},
         {"renderVolume", device->GetCurrentRenderVolume()},
         {"captureVolume", device->GetCurrentCaptureVolume()},
-        {"updateDate", timeAsUtcString},
-        {"deviceMessageType", eventType}
+        {contracts::message_fields::UPDATE_DATE, timeAsUtcString},
+        {contracts::message_fields::DEVICE_MESSAGE_TYPE, eventType}
     };
 
     // Convert nlohmann::json to string and to value
@@ -76,9 +79,9 @@ void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool 
     );
 
     const nlohmann::json payload = {
-        {"deviceMessageType", renderOrCapture ? SoundDeviceEventType::VolumeRenderChanged : SoundDeviceEventType::VolumeCaptureChanged},
-        {"volume", volume},
-        {"updateDate", timeAsUtcString }
+        {contracts::message_fields::DEVICE_MESSAGE_TYPE, renderOrCapture ? SoundDeviceEventType::VolumeRenderChanged : SoundDeviceEventType::VolumeCaptureChanged},
+        {contracts::message_fields::VOLUME, volume},
+        {contracts::message_fields::UPDATE_DATE, timeAsUtcString }
     };
     const std::string payloadString = payload.dump();
 
