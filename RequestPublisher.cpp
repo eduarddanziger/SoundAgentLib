@@ -16,6 +16,9 @@
 #include <future>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <thread>
+#include <chrono>
+#include <algorithm>
 
 
 using namespace BloombergLP;
@@ -29,39 +32,69 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
         bsls::TimeInterval(20, 0)) // 20 seconds
         .setErrorCallback([](const bsl::string& errorText, int errorCode)
             {
-                spdlog::error("RabbitMQ unrecoverable error: {}. Exiting...", errorText);
-                std::exit(0);
+                spdlog::error("RabbitMQ error (code {}): {}", errorCode, errorText);
             });
 
-    contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
-    const auto vhostSharedPtr = contextSmartPtr_->createVHostConnection
-    ("sdr-publisher",
-        bsl::make_shared<
-        rmqt::SimpleEndpoint>(host, vhost, 5672),
-        bsl::make_shared<rmqt::PlainCredentials>(user, pass)
-    );
-    if (!vhostSharedPtr)
-    {
-        throw std::runtime_error("VHost connection failed");
-    }
-    vhostSharedPtr_ = vhostSharedPtr;
+    // Retry parameters
+    constexpr int maxAttempts = 12;
+    std::chrono::milliseconds delay(2000);
+    constexpr std::chrono::milliseconds maxDelay(30000);
 
-    rmqa::Topology topology;
-    const auto exchange = topology.addExchange(RQM_EXCHANGE_NAME);
-    const auto queue = topology.addQueue(RQM_QUEUE_NAME);
-    topology.bind(exchange, queue, RQM_ROUTING_KEY);
-
-    constexpr unsigned short maxUnconfirmed = 10;
-    const auto prodRes = vhostSharedPtr_->createProducer(topology, exchange, maxUnconfirmed);
-    if (!prodRes)
+    for (int attempt = 1; attempt <= maxAttempts; ++attempt)
     {
-        const auto errorString = fmt::format(
-            "Producer creation failed: {}. Host: {}, VHost: {}, User: {}",
-            prodRes.error(), host, vhost, user);
-        spdlog::error(errorString);
-        throw std::runtime_error(errorString);
+        try
+        {
+            contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
+
+            const auto vhostSharedPtr = contextSmartPtr_->createVHostConnection(
+                "sdr-publisher",
+                bsl::make_shared<rmqt::SimpleEndpoint>(host, vhost, 5672),
+                bsl::make_shared<rmqt::PlainCredentials>(user, pass)
+            );
+            if (!vhostSharedPtr)
+            {
+                throw std::runtime_error("VHost connection failed");
+            }
+
+            rmqa::Topology topology;
+            const auto exchange = topology.addExchange(RQM_EXCHANGE_NAME);
+            const auto queue = topology.addQueue(RQM_QUEUE_NAME);
+            topology.bind(exchange, queue, RQM_ROUTING_KEY);
+
+            constexpr unsigned short maxUnconfirmed = 10;
+            const auto prodRes = vhostSharedPtr->createProducer(topology, exchange, maxUnconfirmed);
+            if (!prodRes)
+            {
+                const auto errorString = fmt::format(
+                    "Producer creation failed: {}. Host: {}, VHost: {}, User: {}",
+                    prodRes.error(), host, vhost, user);
+                spdlog::error(errorString);
+                throw std::runtime_error(errorString);
+            }
+
+            producer_ = prodRes.value();
+            vhostSharedPtr_ = vhostSharedPtr;
+
+            spdlog::info("RabbitMQ producer initialized on attempt {}.", attempt);
+            break;
+        }
+        catch (const std::exception& ex)
+        {
+            if (attempt == maxAttempts)
+            {
+                spdlog::error("RabbitMQ initialization failed after {} attempts: {}", maxAttempts, ex.what());
+                throw;
+            }
+
+            spdlog::warn(
+                "RabbitMQ init attempt {}/{} failed: {}. Retrying in {} ms...",
+                attempt, maxAttempts, ex.what(), delay.count());
+
+            std::this_thread::sleep_for(delay);
+            
+            delay = std::min(delay * 2, maxDelay); // Exponential
+        }
     }
-    producer_ = prodRes.value();
 }
 
 void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
