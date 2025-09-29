@@ -1,6 +1,7 @@
 ﻿#include "os-dependencies.h"
 
 #include "RequestPublisher.h"
+
 #include "Contracts.h"
 
 #include <rmqa_topology.h>
@@ -29,18 +30,15 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     contextOptionsSmartPtr_(bsl::make_shared<rmqa::RabbitContextOptions>())
 {
     contextOptionsSmartPtr_->setConnectionErrorThreshold(
-        bsls::TimeInterval(20, 0)) // 20 seconds
-        .setErrorCallback([](const bsl::string& errorText, int errorCode)
-            {
-                spdlog::error("RabbitMQ error (code {}): {}", errorCode, errorText);
-            });
+                               bsls::TimeInterval(CONNECTION_THRESHOLD_IN_SECONDS, 0)) // 20 seconds
+                           .setErrorCallback([](const bsl::string& errorText, int errorCode)
+                           {
+                               spdlog::error("RabbitMQ error (code {}): {}", errorCode, errorText);
+                           });
 
-    // Retry parameters
-    constexpr int maxAttempts = 12;
-    std::chrono::milliseconds delay(2000);
-    constexpr std::chrono::milliseconds maxDelay(30000);
+    std::chrono::milliseconds delay(DELAY_BETWEEN_RECONNECTION_ATTEMPTS_IN_MILLISECONDS);
 
-    for (int attempt = 1; attempt <= maxAttempts; ++attempt)
+    for (int attempt = 1; attempt <= MAX_RECONNECTION_ATTEMPTS; ++attempt)
     {
         try
         {
@@ -80,19 +78,19 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
         }
         catch (const std::exception& ex)
         {
-            if (attempt == maxAttempts)
+            if (attempt == MAX_RECONNECTION_ATTEMPTS)
             {
-                spdlog::error("RabbitMQ initialization failed after {} attempts: {}", maxAttempts, ex.what());
+                spdlog::error("RabbitMQ initialization failed after {} attempts: {}", MAX_RECONNECTION_ATTEMPTS, ex.what());
                 throw;
             }
 
             spdlog::warn(
                 "RabbitMQ init attempt {}/{} failed: {}. Retrying in {} ms...",
-                attempt, maxAttempts, ex.what(), delay.count());
+                attempt, MAX_RECONNECTION_ATTEMPTS, ex.what(), delay.count());
 
             std::this_thread::sleep_for(delay);
             
-            delay = std::min(delay * 2, maxDelay); // Exponential
+            delay = std::min(delay * 2, std::chrono::milliseconds(MAX_DELAY_BETWEEN_RECONNECTION_ATTEMPTS_IN_MILLISECONDS)); // Exponential
         }
     }
 }
