@@ -294,7 +294,7 @@ inline void ed::model::CallbackSink::log(const spdlog::details::log_msg& msg)
             formatter_->format(msg, formatted);
         }
 
-        const auto timestamp = TimePointToStringAsLocal(msg.time, true, true);
+        const auto timestamp = TimePointToStringAsLocal(msg.time, false, false);
         const auto levelStringView = spdlog::level::to_string_view(msg.level);
         const std::string levelString(levelStringView.data(), levelStringView.size());
         callback_(timestamp, levelString, fmt::to_string(formatted));
