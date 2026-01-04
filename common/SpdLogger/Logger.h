@@ -4,6 +4,8 @@
 #include <filesystem>
 
 #include "../ClassDefHelper.h"
+#include "../TimeUtil.h"
+
 
 #include <string>
 
@@ -29,7 +31,7 @@
 
 namespace ed::model
 {
-    using TMessageCallback = void(const std::string& level, const std::string& message);
+    using TMessageCallback = void(const std::string& timestamp, const std::string& level, const std::string& message);
 
     class CallbackSink;
 
@@ -292,9 +294,22 @@ inline void ed::model::CallbackSink::log(const spdlog::details::log_msg& msg)
             formatter_->format(msg, formatted);
         }
 
+        const auto timestamp = TimePointToStringAsLocal(msg.time, false, false);
         const auto levelStringView = spdlog::level::to_string_view(msg.level);
         const std::string levelString(levelStringView.data(), levelStringView.size());
-        callback_(levelString, fmt::to_string(formatted));
+        auto messageString = fmt::to_string(formatted);
+
+        // remove trailing new line characters
+        if (!messageString.empty() && messageString.back() == '\n')
+        {
+            messageString.pop_back();
+        }
+        if (!messageString.empty() && messageString.back() == '\r')
+        {
+            messageString.pop_back();
+        }
+
+        callback_(timestamp, levelString, messageString);
     }
 }
 
