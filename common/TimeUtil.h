@@ -1,17 +1,43 @@
 ﻿#pragma once
 
 #include <fmt/chrono.h>
+#include <ctime>
 #include <string>
 
 namespace ed
 {
+    inline std::tm ToTm(std::time_t timeT, bool utcOrLocal)
+    {
+        std::tm tm{};
+#if defined(_WIN32)
+        if (utcOrLocal)
+        {
+            gmtime_s(&tm, &timeT);
+        }
+        else
+        {
+            localtime_s(&tm, &timeT);
+        }
+#else
+        if (utcOrLocal)
+        {
+            gmtime_r(&timeT, &tm);
+        }
+        else
+        {
+            localtime_r(&timeT, &tm);
+        }
+#endif
+        return tm;
+    }
+
     inline std::string TimePointToString(const std::chrono::system_clock::time_point& timePoint,
         bool utcOrLocal,
         bool insertTBetweenDateAndTime,
         bool addTimeZone)
     {
         const auto timeT = std::chrono::system_clock::to_time_t(timePoint);
-        const auto timeTm = utcOrLocal ? fmt::gmtime(timeT) : fmt::localtime(timeT);
+        const auto timeTm = ToTm(timeT, utcOrLocal);
 
         // Microseconds
         const auto sinceEpoch = timePoint.time_since_epoch();

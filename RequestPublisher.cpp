@@ -152,6 +152,6 @@ rmqt::PlainCredentials::PlainCredentials(bsl::string_view username,
 {
 }
 
-auto BloombergLP::BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME = "";
+const char* BloombergLP::BSLS_LIBRARYFEATURES_LINKER_CHECK_NAME = "";
 
 
