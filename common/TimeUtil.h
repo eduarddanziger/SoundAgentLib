@@ -6,6 +6,26 @@
 
 namespace ed
 {
+    inline std::string LocalUtcOffsetString(const std::chrono::system_clock::time_point& timePoint)
+    {
+        using namespace std::chrono;
+
+        const zoned_time zt{ current_zone(), timePoint };
+        const auto offset = zt.get_info().offset;
+        auto totalMinutes = duration_cast<minutes>(offset).count();
+
+        const char sign = totalMinutes < 0 ? '-' : '+';
+        if (totalMinutes < 0)
+        {
+            totalMinutes = -totalMinutes;
+        }
+
+        const auto hours = totalMinutes / 60;
+        const auto minutesPart = totalMinutes % 60;
+
+        return fmt::format("{}{:02}{:02}", sign, hours, minutesPart);
+    }
+
     inline std::tm ToTm(std::time_t timeT, bool utcOrLocal)
     {
         std::tm tm{};
@@ -61,7 +81,7 @@ namespace ed
             }
             else
             {
-                timeAsString += fmt::format("{:%z}", timeTm);
+                timeAsString += LocalUtcOffsetString(timePoint);
             }
         }
 
