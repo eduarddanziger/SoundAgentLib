@@ -66,7 +66,7 @@ void AudioDeviceApiClient::PostDeviceToApi(SoundDeviceEventType eventType, const
 
     spdlog::info("Enqueueing: {}...", hint);
 
-    requestProcessor_.EnqueueRequest(true, nowTime, "", payloadString, {}, hint);
+    requestProcessor_.EnqueueRequest(true, "", payloadString, hint);
 }
 
 void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool renderOrCapture, uint16_t volume, const std::string& hintPrefix) const
@@ -91,6 +91,6 @@ void AudioDeviceApiClient::PutVolumeChangeToApi(const std::string & pnpId, bool 
 
     const auto urlSuffix = std::format("/{}/{}", pnpId, getHostNameCallback_());
 
-    requestProcessor_.EnqueueRequest(false, nowTime, urlSuffix, payloadString, {}, hint);
+    requestProcessor_.EnqueueRequest(false, urlSuffix, payloadString, hint);
 }
 

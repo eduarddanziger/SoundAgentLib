@@ -18,8 +18,8 @@ RabbitMqHttpRequestDispatcher::RabbitMqHttpRequestDispatcher()
 
 RabbitMqHttpRequestDispatcher::~RabbitMqHttpRequestDispatcher() = default;
 
-void RabbitMqHttpRequestDispatcher::EnqueueRequest(bool postOrPut, const std::chrono::system_clock::time_point & time, const std::string & urlSuffix,
-                                          const std::string & payload, const std::unordered_map<std::string, std::string> & header, const std::string & hint)
+void RabbitMqHttpRequestDispatcher::EnqueueRequest(bool postOrPut, const std::string& urlSuffix,
+                                          const std::string& payload, const std::string& hint)
 {
     spdlog::info("Publishing to the RabbitMQ queue: {}...", hint);
     const nlohmann::json jsonPayload = nlohmann::json::parse(payload);

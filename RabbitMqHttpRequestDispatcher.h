@@ -4,6 +4,8 @@
 
 #include "HttpRequestDispatcherInterface.h"
 
+#include <memory>
+
 class RequestPublisher;
 
 class RabbitMqHttpRequestDispatcher final : public HttpRequestDispatcherInterface
@@ -17,9 +19,8 @@ public:
 
     void EnqueueRequest(
         bool postOrPut,
-        const std::chrono::system_clock::time_point& time,
-        const std::string& urlSuffix, const std::string& payload,
-        const std::unordered_map<std::string, std::string>& header,
+        const std::string& urlSuffix,
+        const std::string& payload,
         const std::string& hint
     ) override;
 
