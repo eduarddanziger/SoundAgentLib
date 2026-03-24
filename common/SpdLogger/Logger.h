@@ -89,9 +89,13 @@ namespace ed::model
         {
         }
 
-        void set_pattern([[maybe_unused]] const std::string& pattern) override;
+        void set_pattern([[maybe_unused]] const std::string& pattern) override
+        {
+        }
 
-        void set_formatter([[maybe_unused]] std::unique_ptr<spdlog::formatter> sinkFormatter) override;
+        void set_formatter([[maybe_unused]] std::unique_ptr<spdlog::formatter> sinkFormatter) override
+        {
+        }
 
     private:
         TMessageCallback* callback_;
@@ -312,18 +316,4 @@ inline void ed::model::CallbackSink::log(const spdlog::details::log_msg& msg)
 
         callback_(timestamp, levelString, messageString);
     }
-}
-
-inline void ed::model::CallbackSink::set_pattern(const std::string& pattern)
-{
-    // Enforce pure %v regardless of requested pattern
-    formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");
-    // set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
-}
-
-inline void ed::model::CallbackSink::set_formatter(std::unique_ptr<spdlog::formatter> sinkFormatter)
-{
-    // Prevent overriding with non-%v formatter
-    formatter_ = std::make_unique<spdlog::pattern_formatter>("%v");
-    // formatter_ = std::move(sinkFormatter);
 }
