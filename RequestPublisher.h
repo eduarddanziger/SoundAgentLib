@@ -3,6 +3,9 @@
 #include <rmqa_rabbitcontext.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include <atomic>
+#include <mutex>
+
 class RequestPublisher
 {
 public:
@@ -16,6 +19,8 @@ public:
         const nlohmann::json& payload,
         const std::string& httpRequest,
         const std::string& urlSuffix) const;
+
+    void HandleConnectionError(const bsl::string& errorText, int errorCode);
 
 private:
     static constexpr auto RQM_EXCHANGE_NAME = "sdr_exchange";
@@ -32,4 +37,7 @@ private:
     bsl::shared_ptr<BloombergLP::rmqa::RabbitContext> contextSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::VHost> vhostSharedPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::Producer> producer_;
+    mutable std::mutex stateMutex_;
+    std::atomic<int> connectionErrorCount_{0};
+    std::atomic<bool> reconnectLimitReached_{false};
 };

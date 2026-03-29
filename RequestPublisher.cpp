@@ -31,9 +31,9 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
 {
     contextOptionsSmartPtr_->setConnectionErrorThreshold(
                                bsls::TimeInterval(CONNECTION_THRESHOLD_IN_SECONDS, 0)) // 20 seconds
-                           .setErrorCallback([](const bsl::string& errorText, int errorCode)
+                           .setErrorCallback([this](const bsl::string& errorText, int errorCode)
                            {
-                               spdlog::error("RabbitMQ error (code {}): {}", errorCode, errorText);
+                               HandleConnectionError(errorText, errorCode);
                            });
 
     std::chrono::milliseconds delay(DELAY_BETWEEN_RECONNECTION_ATTEMPTS_IN_MILLISECONDS);
@@ -70,8 +70,13 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
                 throw std::runtime_error(errorString);
             }
 
-            producer_ = prodRes.value();
-            vhostSharedPtr_ = vhostSharedPtr;
+            {
+                const std::lock_guard<std::mutex> lock(stateMutex_);
+                producer_ = prodRes.value();
+                vhostSharedPtr_ = vhostSharedPtr;
+            }
+            connectionErrorCount_.store(0);
+            reconnectLimitReached_.store(false);
 
             spdlog::info("RabbitMQ producer initialized on attempt {}.", attempt);
             break;
@@ -95,9 +100,45 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     }
 }
 
+void RequestPublisher::HandleConnectionError(const bsl::string& errorText, int errorCode)
+{
+    const int errorCount = connectionErrorCount_.fetch_add(1) + 1;
+    spdlog::error("RabbitMQ error (code {}), attempt {}/{}: {}",
+                  errorCode,
+                  errorCount,
+                  MAX_RECONNECTION_ATTEMPTS,
+                  errorText);
+
+    if (errorCount < MAX_RECONNECTION_ATTEMPTS || reconnectLimitReached_.exchange(true))
+    {
+        return;
+    }
+
+    bsl::shared_ptr<rmqa::VHost> vhostSharedPtr;
+    {
+        const std::lock_guard<std::mutex> lock(stateMutex_);
+        vhostSharedPtr = vhostSharedPtr_;
+    }
+
+    spdlog::error("RabbitMQ reconnect limit reached after {} failed attempts. Closing connection.",
+                  MAX_RECONNECTION_ATTEMPTS);
+
+    if (vhostSharedPtr)
+    {
+        vhostSharedPtr->close();
+    }
+}
+
 void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
                                const std::string& urlSuffix) const
 {
+    if (reconnectLimitReached_.load())
+    {
+        spdlog::error("RabbitMQ publisher is offline because the reconnect limit of {} was reached.",
+                      MAX_RECONNECTION_ATTEMPTS);
+        return;
+    }
+
     // Prepare message
     nlohmann::json payloadExtended(payload);
     payloadExtended[std::string(contracts::message_fields::HTTP_REQUEST)] = httpRequest;
@@ -107,8 +148,20 @@ void RequestPublisher::Publish(const nlohmann::json& payload, const std::string&
     const auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());
     const rmqt::Message message(vecPtr);
 
+    bsl::shared_ptr<rmqa::Producer> producer;
+    {
+        const std::lock_guard<std::mutex> lock(stateMutex_);
+        producer = producer_;
+    }
+
+    if (!producer)
+    {
+        spdlog::error("RabbitMQ producer is not available.");
+        return;
+    }
+
     const rmqp::Producer::SendStatus sendResult =
-        producer_->send(
+        producer->send(
             message,
             RQM_ROUTING_KEY,
             [msgStr](const rmqt::Message&,
