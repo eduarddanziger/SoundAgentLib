@@ -45,14 +45,14 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     {
         try
         {
-            const auto contextSmartPtr = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
+            contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
 
-            const auto vhostSharedPtr = contextSmartPtr->createVHostConnection(
+            vHostSmartPtr_ = contextSmartPtr_->createVHostConnection(
                 "sdr-publisher",
                 bsl::make_shared<rmqt::SimpleEndpoint>(host, vhost, 5672),
                 bsl::make_shared<rmqt::PlainCredentials>(user, pass)
             );
-            if (!vhostSharedPtr)
+            if (!vHostSmartPtr_)
             {
                 throw std::runtime_error("VHost connection failed");
             }
@@ -64,7 +64,7 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
 
             constexpr unsigned short maxUnconfirmed = 10;
             spdlog::info("Initializing the RabbitMQ producer on attempt {}/{}.", attempt, MAX_RECONNECTION_ATTEMPTS);
-            auto prodFuture = vhostSharedPtr->createProducerAsync(topology, exchange, maxUnconfirmed);
+            auto prodFuture = vHostSmartPtr_->createProducerAsync(topology, exchange, maxUnconfirmed);
 
             // Wait with a timeout so we can break out if host is unreachable
             spdlog::info("Waiting for RabbitMQ producer (up to {} seconds)...", CONNECTION_THRESHOLD_IN_SECONDS + 5);

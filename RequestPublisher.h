@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <rmqa_rabbitcontext.h>
+#include <rmqa_vhost.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include <atomic>
@@ -35,6 +36,8 @@ private:
 
 
     bsl::shared_ptr<BloombergLP::rmqa::RabbitContextOptions> contextOptionsSmartPtr_;
+    bsl::shared_ptr<BloombergLP::rmqa::RabbitContext> contextSmartPtr_;
+    bsl::shared_ptr<BloombergLP::rmqa::VHost> vHostSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::Producer> producer_;
 
     std::condition_variable connectionErrorCV_;
