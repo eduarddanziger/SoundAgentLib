@@ -5,13 +5,14 @@
 #include "HttpRequestDispatcherInterface.h"
 
 #include <memory>
+#include <string>
 
 class RequestPublisher;
 
 class RabbitMqHttpRequestDispatcher final : public HttpRequestDispatcherInterface
 {
 public:
-    RabbitMqHttpRequestDispatcher();
+    explicit RabbitMqHttpRequestDispatcher(const std::string& host);
 
     DISALLOW_COPY_MOVE(RabbitMqHttpRequestDispatcher);
 
