@@ -1,5 +1,7 @@
 ﻿#include "os-dependencies.h"
 
+#define USES_LIBRMQ_EXPERIMENTAL_FEATURES
+
 #include "RequestPublisher.h"
 
 #include "Contracts.h"
@@ -7,6 +9,7 @@
 #include <rmqa_topology.h>
 #include <rmqa_producer.h>
 
+#include <rmqt_future.h>
 #include <rmqt_message.h>
 #include <rmqt_simpleendpoint.h>
 #include <rmqt_plaincredentials.h>
@@ -42,9 +45,9 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
     {
         try
         {
-            contextSmartPtr_ = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
+            const auto contextSmartPtr = bsl::make_shared<rmqa::RabbitContext>(*contextOptionsSmartPtr_);
 
-            const auto vhostSharedPtr = contextSmartPtr_->createVHostConnection(
+            const auto vhostSharedPtr = contextSmartPtr->createVHostConnection(
                 "sdr-publisher",
                 bsl::make_shared<rmqt::SimpleEndpoint>(host, vhost, 5672),
                 bsl::make_shared<rmqt::PlainCredentials>(user, pass)
@@ -60,7 +63,13 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
             topology.bind(exchange, queue, RQM_ROUTING_KEY);
 
             constexpr unsigned short maxUnconfirmed = 10;
-            const auto prodRes = vhostSharedPtr->createProducer(topology, exchange, maxUnconfirmed);
+            spdlog::info("Initializing the RabbitMQ producer on attempt {}/{}.", attempt, MAX_RECONNECTION_ATTEMPTS);
+            auto prodFuture = vhostSharedPtr->createProducerAsync(topology, exchange, maxUnconfirmed);
+
+            // Wait with a timeout so we can break out if host is unreachable
+            spdlog::info("Waiting for RabbitMQ producer (up to {} seconds)...", CONNECTION_THRESHOLD_IN_SECONDS + 5);
+            const auto prodRes = prodFuture.waitResult(
+                bsls::TimeInterval(CONNECTION_THRESHOLD_IN_SECONDS + 5, 0));
             if (!prodRes)
             {
                 const auto errorString = fmt::format(
@@ -70,13 +79,7 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
                 throw std::runtime_error(errorString);
             }
 
-            {
-                const std::lock_guard<std::mutex> lock(stateMutex_);
-                producer_ = prodRes.value();
-                vhostSharedPtr_ = vhostSharedPtr;
-            }
-            connectionErrorCount_.store(0);
-            reconnectLimitReached_.store(false);
+            producer_ = prodRes.value();
 
             spdlog::info("RabbitMQ producer initialized on attempt {}.", attempt);
             break;
@@ -102,43 +105,16 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
 
 void RequestPublisher::HandleConnectionError(const bsl::string& errorText, int errorCode)
 {
-    const int errorCount = connectionErrorCount_.fetch_add(1) + 1;
-    spdlog::error("RabbitMQ error (code {}), attempt {}/{}: {}",
+    spdlog::error("RabbitMQ error {}: {}",
                   errorCode,
-                  errorCount,
-                  MAX_RECONNECTION_ATTEMPTS,
                   errorText);
 
-    if (errorCount < MAX_RECONNECTION_ATTEMPTS || reconnectLimitReached_.exchange(true))
-    {
-        return;
-    }
-
-    bsl::shared_ptr<rmqa::VHost> vhostSharedPtr;
-    {
-        const std::lock_guard<std::mutex> lock(stateMutex_);
-        vhostSharedPtr = vhostSharedPtr_;
-    }
-
-    spdlog::error("RabbitMQ reconnect limit reached after {} failed attempts. Closing connection.",
-                  MAX_RECONNECTION_ATTEMPTS);
-
-    if (vhostSharedPtr)
-    {
-        vhostSharedPtr->close();
-    }
+    connectionErrorCV_.notify_all();
 }
 
 void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,
                                const std::string& urlSuffix) const
 {
-    if (reconnectLimitReached_.load())
-    {
-        spdlog::error("RabbitMQ publisher is offline because the reconnect limit of {} was reached.",
-                      MAX_RECONNECTION_ATTEMPTS);
-        return;
-    }
-
     // Prepare message
     nlohmann::json payloadExtended(payload);
     payloadExtended[std::string(contracts::message_fields::HTTP_REQUEST)] = httpRequest;
@@ -148,20 +124,9 @@ void RequestPublisher::Publish(const nlohmann::json& payload, const std::string&
     const auto vecPtr = bsl::make_shared<bsl::vector<uint8_t>>(msgStr.begin(), msgStr.end());
     const rmqt::Message message(vecPtr);
 
-    bsl::shared_ptr<rmqa::Producer> producer;
-    {
-        const std::lock_guard<std::mutex> lock(stateMutex_);
-        producer = producer_;
-    }
-
-    if (!producer)
-    {
-        spdlog::error("RabbitMQ producer is not available.");
-        return;
-    }
 
     const rmqp::Producer::SendStatus sendResult =
-        producer->send(
+        producer_->send(
             message,
             RQM_ROUTING_KEY,
             [msgStr](const rmqt::Message&,

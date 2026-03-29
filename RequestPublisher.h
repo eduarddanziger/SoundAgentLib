@@ -4,6 +4,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
 
 class RequestPublisher
@@ -34,10 +35,8 @@ private:
 
 
     bsl::shared_ptr<BloombergLP::rmqa::RabbitContextOptions> contextOptionsSmartPtr_;
-    bsl::shared_ptr<BloombergLP::rmqa::RabbitContext> contextSmartPtr_;
-    bsl::shared_ptr<BloombergLP::rmqa::VHost> vhostSharedPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::Producer> producer_;
-    mutable std::mutex stateMutex_;
-    std::atomic<int> connectionErrorCount_{0};
-    std::atomic<bool> reconnectLimitReached_{false};
+
+    std::condition_variable connectionErrorCV_;
+    std::mutex connectionErrorCVMutex_;
 };
