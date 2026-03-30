@@ -28,6 +28,56 @@
 using namespace BloombergLP;
 
 
+RequestPublisher::~RequestPublisher() noexcept
+{
+    ResetRabbitResources();
+}
+
+
+void RequestPublisher::ResetRabbitResources() noexcept
+{
+    if (producer_)
+    {
+        spdlog::info("Starting RabbitMQ producer shutdown...");
+        try
+        {
+            const auto confirmsResult = producer_->waitForConfirms(
+                bsls::TimeInterval(CONNECTION_THRESHOLD_IN_SECONDS, 0));
+            if (!confirmsResult)
+            {
+                spdlog::warn("Timed out waiting for RabbitMQ confirms during shutdown: {}",
+                             confirmsResult.error());
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            spdlog::warn("Failed to flush RabbitMQ producer during shutdown: {}", ex.what());
+        }
+
+        producer_.reset();
+    }
+
+    if (vHostSmartPtr_)
+    {
+        spdlog::info("Starting RabbitMQ vhost shutdown...");
+        try
+        {
+            vHostSmartPtr_->close();
+        }
+        catch (const std::exception& ex)
+        {
+            spdlog::warn("Failed to close RabbitMQ vhost during shutdown: {}", ex.what());
+        }
+
+        vHostSmartPtr_.reset();
+    }
+
+    spdlog::info("Starting freeing RabbitMQ context...");
+    contextSmartPtr_.reset();
+    spdlog::info("RabbitMQ resources freed.");
+}
+
+
 RequestPublisher::RequestPublisher(const std::string& host, const std::string& vhost, const std::string& user,
     const std::string& pass) :
     contextOptionsSmartPtr_(bsl::make_shared<rmqa::RabbitContextOptions>())
@@ -76,6 +126,7 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
                     "Producer creation failed: {}. Host: {}, VHost: {}, User: {}",
                     prodRes.error(), host, vhost, user);
                 spdlog::error(errorString);
+                
                 throw std::runtime_error(errorString);
             }
 
@@ -86,6 +137,8 @@ RequestPublisher::RequestPublisher(const std::string& host, const std::string& v
         }
         catch (const std::exception& ex)
         {
+            ResetRabbitResources();
+
             if (attempt == MAX_RECONNECTION_ATTEMPTS)
             {
                 spdlog::error("RabbitMQ initialization failed after {} attempts: {}", MAX_RECONNECTION_ATTEMPTS, ex.what());
@@ -109,7 +162,6 @@ void RequestPublisher::HandleConnectionError(const bsl::string& errorText, int e
                   errorCode,
                   errorText);
 
-    connectionErrorCV_.notify_all();
 }
 
 void RequestPublisher::Publish(const nlohmann::json& payload, const std::string& httpRequest,

@@ -17,6 +17,8 @@ public:
         const std::string& user,
         const std::string& pass);
 
+    ~RequestPublisher() noexcept;
+
     void Publish(
         const nlohmann::json& payload,
         const std::string& httpRequest,
@@ -34,12 +36,10 @@ private:
     static constexpr int DELAY_BETWEEN_RECONNECTION_ATTEMPTS_IN_MILLISECONDS = 2000;
     static constexpr int MAX_DELAY_BETWEEN_RECONNECTION_ATTEMPTS_IN_MILLISECONDS = 30000;
 
+    void ResetRabbitResources() noexcept;
 
     bsl::shared_ptr<BloombergLP::rmqa::RabbitContextOptions> contextOptionsSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::RabbitContext> contextSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::VHost> vHostSmartPtr_;
     bsl::shared_ptr<BloombergLP::rmqa::Producer> producer_;
-
-    std::condition_variable connectionErrorCV_;
-    std::mutex connectionErrorCVMutex_;
 };
