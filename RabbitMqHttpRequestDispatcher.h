@@ -12,7 +12,11 @@ class RequestPublisher;
 class RabbitMqHttpRequestDispatcher final : public HttpRequestDispatcherInterface
 {
 public:
-    explicit RabbitMqHttpRequestDispatcher(const std::string& host);
+    RabbitMqHttpRequestDispatcher(
+        const std::string& host,
+        const std::string& user,
+        const std::string& password
+    );
 
     DISALLOW_COPY_MOVE(RabbitMqHttpRequestDispatcher);
 

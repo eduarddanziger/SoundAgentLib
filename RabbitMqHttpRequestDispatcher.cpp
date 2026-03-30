@@ -11,8 +11,12 @@
 using namespace BloombergLP;
 
 
-RabbitMqHttpRequestDispatcher::RabbitMqHttpRequestDispatcher(const std::string& host)
-    : requestPublisher_(std::make_unique<RequestPublisher>(host, "/", "guest", "guest"))
+RabbitMqHttpRequestDispatcher::RabbitMqHttpRequestDispatcher(
+    const std::string& host,
+    const std::string& user,
+    const std::string& password
+)
+    : requestPublisher_(std::make_unique<RequestPublisher>(host, "/", user, password))
 {
 }
 
