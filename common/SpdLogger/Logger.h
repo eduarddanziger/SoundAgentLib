@@ -266,7 +266,7 @@ inline void ed::model::Logger::Reinit()
     spdlog::register_logger(spdLogger);
     spdlog::set_default_logger(spdLogger);
 
-    spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f %L [%t] %v");
+    spdlog::set_pattern(std::string("%Y-%m-%d") + delimiterBetweenDateAndTime_ + "%H:%M:%S.%f%z %L [%t] %v");
     spdlog::set_level(spdlog::level::debug);
     spdlog::flush_on(spdlog::level::debug);
     spdlog::info("Log for {} (version {}) was reinitiated: {}", appName_, appVersion_, finalMessage);
