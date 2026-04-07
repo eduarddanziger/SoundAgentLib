@@ -23,7 +23,7 @@ namespace ed
         const auto hours = totalMinutes / 60;
         const auto minutesPart = totalMinutes % 60;
 
-        return fmt::format("{}{:02}{:02}", sign, hours, minutesPart);
+        return fmt::format("{}{:02}:{:02}", sign, hours, minutesPart);
     }
 
     inline std::tm ToTm(std::time_t timeT, bool utcOrLocal)
