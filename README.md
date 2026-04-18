@@ -1,7 +1,7 @@
-# SoundAgentLib (ApiClient + Common)
+# SoundAgentLib (obsolete)
 
-Multiplatform reusable C++ code for Sound Agents, supporting both Windows and Linux.
-See [SoundLinuxAgent](https://github.com/eduarddanziger/SoundLinuxAgent) and [WinSoundEngine](https://github.com/collect-sound-devices/win-sound-engine) repositories.
+- Currently used as a submodule by an obsolete monolith agent [SoundWinAgent](https://github.com/eduarddanziger/SoundWinAgent)
+- The successors of sound agents are Windows and Linux sound scanners, that can be found in [Collect Sound Devices solution domain](https://github.com/collect-sound-devices)
 
 ## Features
 
